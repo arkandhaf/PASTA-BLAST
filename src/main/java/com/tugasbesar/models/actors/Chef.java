@@ -3,122 +3,136 @@ package com.tugasbesar.models.actors;
 import com.tugasbesar.core.GamePanel;
 import com.tugasbesar.core.KeyHandler;
 import com.tugasbesar.models.abstracts.Entity;
-
+import com.tugasbesar.models.abstracts.Item; 
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 
 public class Chef extends Entity {
 
+    // --- VIEW/CONTROLLER VARIABELS ---
     GamePanel gp;
-    KeyHandler keyH;
+    // Hapus KeyHandler keyH; dari field, karena sekarang KeyHandler dipass ke update()
+    private int playerID; 
 
-    // --- VARIABEL BARU ---
-    public String direction = "down"; // Arah hadap (up, down, left, right)
-    public Entity heldItem = null;    // Barang yang dipegang
+    // --- MODEL/LOGIC VARIABELS ---
+    private String name;
+    private Item heldItem; 
+    private String orientation; 
+    private boolean isBusy; 
 
-    public Chef(GamePanel gp, KeyHandler keyH) {
+    private Color chefColor; 
+
+    // Constructor BARU (tidak menyimpan keyH sebagai field, tapi kita tetap butuh di sini)
+    public Chef(GamePanel gp, KeyHandler keyH, String name, int playerID) { 
         this.gp = gp;
-        this.keyH = keyH;
-
+        this.name = name;
+        this.playerID = playerID;
         setDefaultValues();
     }
 
     public void setDefaultValues() {
-        x = 100;
-        y = 100;
-        speed = 4; // Kecepatan Normal
+        speed = 4;
         
-        // Hitbox lebih kecil dari gambar asli (biar enak manuvernya)
-        solidArea = new Rectangle(8, 16, 32, 32); 
+        // Penempatan awal berdasarkan ID pemain
+        if (playerID == 1) {
+            x = 100;
+            y = 100;
+            chefColor = Color.RED;
+        } else { // playerID == 2
+            x = 500;
+            y = 100;
+            chefColor = Color.BLUE;
+        }
+
+        this.solidArea = new Rectangle(8, 16, 32, 32); 
+        
+        this.heldItem = null; 
+        this.orientation = "down"; 
+        this.isBusy = false;
     }
 
+    // ------------------------------------------------------------------------
+    // --- UPDATE METHOD (Hanya bergerak jika menerima KeyHandler) ---
+    // ------------------------------------------------------------------------
+    
+    // NOTE: Override public void update() yang lama harus diganti dengan ini
+    public void update(KeyHandler inputKeyH) {
+        
+        // Cek: Jika tidak ada KeyHandler yang dipass (bukan giliran), keluar dari method.
+        if (inputKeyH == null) {
+            // Kita bisa atur speed menjadi 0 atau membiarkan Chef diam
+            return; 
+        }
+
+        // --- CHEF AKTIF: LOGIC MOVEMENT DAN AKSI ---
+        speed = 4;
+        
+        if (inputKeyH.dashPressed) { 
+            speed = 8; 
+        } 
+        
+        // 1. GERAKAN
+        if (inputKeyH.upPressed || inputKeyH.downPressed || inputKeyH.leftPressed || inputKeyH.rightPressed) {
+            if (inputKeyH.upPressed) { orientation = "up"; y -= speed; }
+            else if (inputKeyH.downPressed) { orientation = "down"; y += speed; }
+            else if (inputKeyH.leftPressed) { orientation = "left"; x -= speed; }
+            else if (inputKeyH.rightPressed) { orientation = "right"; x += speed; }
+        }
+        
+        // 2. INTERAKSI
+        if (inputKeyH.interactPressed) { 
+            // interact(); // Panggil logic interaksi
+            inputKeyH.interactPressed = false; // Matikan tombol interaksi
+        }
+        
+        // 3. COLLISION CHECK (gunakan gp.cChecker karena gp adalah field)
+        gp.cChecker.checkWindowBoundary(this); 
+    }
+
+    // Metode update() kosong untuk kompatibilitas jika Entity/Runnable membutuhkannya
     @Override
     public void update() {
-        
-        // --- LOGIC DASH (LARI CEPAT) ---
-        // Kalau tombol SHIFT ditekan, speed jadi 8 (Ngebut)
-        if (keyH.dashPressed) {
-            speed = 8;
-        } else {
-            speed = 4; // Normal
-        }
-
-        // --- LOGIC GERAK (WASD) ---
-        // Kita simpan arah ("direction") setiap kali tombol ditekan
-        if (keyH.upPressed) {
-            direction = "up";
-            y -= speed;
-        }
-        if (keyH.downPressed) {
-            direction = "down";
-            y += speed;
-        }
-        if (keyH.leftPressed) {
-            direction = "left";
-            x -= speed;
-        }
-        if (keyH.rightPressed) {
-            direction = "right";
-            x += speed;
-        }
-
-        // --- CEK TABRAKAN (MENTOK LAYAR) ---
-        gp.cChecker.checkWindowBoundary(this);
-
-        // --- LOGIC INTERAKSI (SPASI) ---
-        if (keyH.interactPressed) {
-            interact();
-            // Matikan tombol manual biar gak spamming (sekali tekan = 1 aksi)
-            keyH.interactPressed = false; 
-        }
+        // Ini adalah metode kosong yang dipanggil jika update(KeyHandler) tidak dipanggil.
     }
 
-    // --- LOGIC SENSOR DEPAN (RAYCASTING LITE) ---
-    public void interact() {
-        // 1. Hitung titik tengah Chef
-        int centerX = x + (gp.tileSize / 2);
-        int centerY = y + (gp.tileSize / 2);
-
-        // 2. Hitung Chef ada di kolom & baris berapa sekarang
-        int currentCol = centerX / gp.tileSize;
-        int currentRow = centerY / gp.tileSize;
-
-        // 3. Tentukan koordinat target (1 kotak di depan muka Chef)
-        int targetCol = currentCol;
-        int targetRow = currentRow;
-
-        switch (direction) {
-            case "up":    targetRow--; break; // Depan = Atas
-            case "down":  targetRow++; break; // Depan = Bawah
-            case "left":  targetCol--; break; // Depan = Kiri
-            case "right": targetCol++; break; // Depan = Kanan
-        }
-
-        // TEST OUTPUT (Cek di Console saat tekan Spasi)
-        System.out.println("⚡ ACTION: Chef (" + direction + ") interaksi di Col: " + targetCol + ", Row: " + targetRow);
-    }
-
+    // ------------------------------------------------------------------------
+    // --- DRAW METHOD ---
+    // ... (tetap sama) ...
+    
     @Override
     public void draw(Graphics2D g2) {
-        // Gambar Chef (Badan Putih)
-        g2.setColor(Color.WHITE);
-        g2.fillRect(x, y, gp.tileSize, gp.tileSize);
+        g2.setColor(chefColor);
+        g2.fillRect(x, y, gp.tileSize, gp.tileSize); 
         
-        // --- VISUALISASI ARAH HADAP (MATA HITAM) ---
-        // Biar kita tau Chef lagi madep mana
+        g2.setColor(Color.WHITE);
+        g2.drawString(name, x, y - 5); 
+
         g2.setColor(Color.BLACK);
-        switch(direction) {
-            case "up":    g2.fillRect(x + 20, y + 5, 8, 8); break;  // Mata di atas
-            case "down":  g2.fillRect(x + 20, y + 35, 8, 8); break; // Mata di bawah
-            case "left":  g2.fillRect(x + 5, y + 20, 8, 8); break;  // Mata di kiri
-            case "right": g2.fillRect(x + 35, y + 20, 8, 8); break; // Mata di kanan
+        switch(orientation) {
+             case "up": g2.fillRect(x + 20, y + 5, 8, 8); break;
+             case "down": g2.fillRect(x + 20, y + 35, 8, 8); break;
+             case "left": g2.fillRect(x + 5, y + 20, 8, 8); break;
+             case "right": g2.fillRect(x + 35, y + 20, 8, 8); break;
         }
 
-        // --- GAMBAR BARANG YANG DIPEGANG ---
         if (heldItem != null) {
-            g2.setColor(Color.RED); // Barang warna merah
-            g2.fillRect(x + 12, y - 10, 24, 24); // Melayang di atas kepala
+            g2.setColor(new Color(255, 165, 0)); 
+            g2.fillOval(x + 12, y - 10, 24, 24); 
         }
     }
+
+    // ------------------------------------------------------------------------
+    // --- LOGIC GETTERS/SETTERS ---
+    // ------------------------------------------------------------------------
+    
+    public String getName() { return name; }
+    public Item getHeldItem() { return heldItem; }
+    public void setHeldItem(Item item) { this.heldItem = item; }
+    public boolean hasItem() { return heldItem != null; } 
+
+    public String getOrientation() { return orientation; }
+    public boolean isBusy() { return isBusy; }
+    public void setBusy(boolean busy) { this.isBusy = busy; }
+    public int getPlayerID() { return playerID; }
 }
