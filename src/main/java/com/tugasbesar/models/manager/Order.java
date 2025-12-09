@@ -1,3 +1,4 @@
+package com.tugasbesar.models.manager;
 import Recipe.java;
 public class Order {
     public Recipe recipe;
@@ -16,5 +17,21 @@ public class Order {
         this.isCompleted = false;
         this.isFailed = false;
     }
+    public void update(){
+        timerRemaining--;
+    }
+
+    public boolean isExpired(){
+        if (timerRemaining <= 0){
+            this.isFailed = true;
+            return isFailed;
+        }
+        return false;
+    }
+
+    public boolean  validateDish(Dish dish){
+
+    }
+    
 
 }

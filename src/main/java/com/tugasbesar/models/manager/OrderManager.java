@@ -1,4 +1,4 @@
-package resources;
+package com.tugasbesar.models.manager;
 import Order.java;
 import java.util.Random;
 public class OrderManager {
