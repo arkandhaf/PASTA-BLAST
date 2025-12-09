@@ -36,4 +36,8 @@ public class Recipe {
     public String getRecipeName(){
         return this.recipeName;
     }
+
+    public List<Ingredient> getIngredients(){
+        return this.requirements;
+    }
 }
