@@ -23,14 +23,18 @@ public class GamePanel extends JPanel implements Runnable {
     Thread gameThread;
     KeyHandler keyH = new KeyHandler();
 
-    
-   // --- SYSTEM V2.0 (Baru) ---
+    // --- SYSTEM V2.0 ---
     public CollisionChecker cChecker = new CollisionChecker(this); // Polisi Tabrakan
     public int gameTime = 180; // Waktu 3 Menit (180 detik)
     public boolean isGameRunning = true;
+    
+    // --- VARIABEL BARU UNTUK GILIRAN (TURN) ---
+    // Chef yang saat ini BISA bergerak. Nilai: 1 atau 2. Default: P1.
+    public int activePlayerID = 1; 
 
-    // --- ENTITY ---
-    public Chef player = new Chef(this, keyH);
+    // --- ENTITY (Mendukung 2 Pemain) ---
+    public Chef chef1; // Chef Player 1
+    public Chef chef2; // Chef Player 2
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -38,6 +42,10 @@ public class GamePanel extends JPanel implements Runnable {
         this.setDoubleBuffered(true);
         this.addKeyListener(keyH);
         this.setFocusable(true);
+        
+        // INISIALISASI DUA CHEF BARU dengan nama dan ID
+        chef1 = new Chef(this, keyH, "P1", 1);
+        chef2 = new Chef(this, keyH, "P2", 2); 
     }
 
     public void startGameThread() {
@@ -47,14 +55,13 @@ public class GamePanel extends JPanel implements Runnable {
         startGameTimer(); // Jalankan Waktu Mundur
     }
     
-    // --- THREAD KHUSUS WAKTU (Agar tidak ganggu gerakan) ---
+    // --- THREAD KHUSUS WAKTU ---
     public void startGameTimer() {
         Thread timerThread = new Thread(() -> {
             while (isGameRunning && gameTime > 0) {
                 try {
                     Thread.sleep(1000); // Tunggu 1 detik
                     gameTime--;
-                    // System.out.println("Sisa Waktu: " + gameTime); // Cek console kalau mau
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -89,7 +96,30 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void update() {
         if (isGameRunning) {
-            player.update();
+            
+            // --- LOGIC GANTI GILIRAN (TURN SWAP) ---
+            if (keyH.turnSwapPressed) {
+                if (activePlayerID == 1) {
+                    activePlayerID = 2; // Ganti ke P2
+                    System.out.println("🔄 GILIRAN: Chef P2 Aktif");
+                } else {
+                    activePlayerID = 1; // Ganti ke P1
+                    System.out.println("🔄 GILIRAN: Chef P1 Aktif");
+                }
+                keyH.turnSwapPressed = false; // Matikan tombol agar tidak spamming
+            }
+            
+            // --- HANYA UPDATE CHEF YANG AKTIF ---
+            // Kita pass KeyHandler HANYA kepada Chef yang aktif
+            if (activePlayerID == 1) {
+                chef1.update(keyH); 
+                chef2.update(null); // P2 TIDAK menerima KeyHandler, sehingga tidak bergerak
+            } else { // activePlayerID == 2
+                chef1.update(null);  // P1 TIDAK menerima KeyHandler
+                chef2.update(keyH); 
+            }
+            
+            // --- TODO: Lakukan update untuk semua Station di sini jika ada ---
         }
     }
 
@@ -97,13 +127,18 @@ public class GamePanel extends JPanel implements Runnable {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
 
-        // Gambar Player
-        player.draw(g2);
+        // --- Gambar kedua Chef ---
+        chef1.draw(g2);
+        chef2.draw(g2);
         
-        // --- HUD (Tampilan Waktu) ---
+        // --- HUD (Tampilan Waktu & Giliran) ---
         g2.setColor(Color.WHITE);
         g2.setFont(g2.getFont().deriveFont(30F)); 
-        g2.drawString("Time: " + gameTime, 20, 40); // Tampil di pojok kiri atas
+        g2.drawString("Time: " + gameTime, 20, 40); 
+        
+        // Tampilkan giliran
+        g2.setColor(activePlayerID == 1 ? Color.RED : Color.BLUE);
+        g2.drawString("Turn: P" + activePlayerID, screenWidth - 150, 40);
 
         g2.dispose();
     }
