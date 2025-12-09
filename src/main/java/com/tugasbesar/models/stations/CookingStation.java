@@ -21,76 +21,110 @@ public class CookingStation extends Station {
         Item hand = chef.getHeldItem();
         Item tableItem = itemOnStation;
 
+        // --- 1. INTERAKSI DENGAN BASE COOKING DEVICE DI MEJA (Jika ada Utensil) ---
         if (tableItem instanceof BaseCookingDevice) {
-            BaseCookingDevice utensil = (BaseCookingDevice) tableItem;
+            BaseCookingDevice utensilOnTable = (BaseCookingDevice) tableItem;
             
-            // PLATING: Piring di tangan Chef
-            if (chef.hasItem() && hand instanceof Plate && utensil.isCookedOrBurned()) {
+            // A. PLATING: Piring di tangan Chef
+            if (chef.hasItem() && hand instanceof Plate && !utensilOnTable.isEmpty()) {
                 Plate plate = (Plate) hand;
-                if (!plate.isDirty() && plate.canAccept(utensil.getContents().get(0))) {
+                Processable ingredient = (Processable) utensilOnTable.getContents().get(0);
+
+                if (utensilOnTable.isCookedOrBurned() && !plate.isDirty() && plate.canAccept(ingredient)) {
                     
-                    Processable ingredientToPlate = (Processable) utensil.takeItem(); 
-                    plate.addIngredient(ingredientToPlate);            
+                    Processable ingredientToPlate = (Processable) utensilOnTable.takeItem(); 
+                    plate.addIngredient(ingredientToPlate); 
                     
-                    System.out.println("[Stove: Plating] " + ingredientToPlate.getName() + " dari " + utensil.getName() + " pindah ke piring di tangan.");
+                    System.out.println("[Stove: Plating] " + ingredientToPlate.getName() + " dari " + utensilOnTable.getName() + " pindah ke piring di tangan.");
                     return;
                 }
             }
             
-            
+            // B. MASUKKAN BAHAN KE UTENSIL DI MEJA
             if (chef.hasItem() && hand instanceof Cookable) { 
                 Cookable ingredient = (Cookable) hand;
-                if (utensil.canAccept(ingredient)) { 
-                    utensil.addIngredient(ingredient);
-                    utensil.startCooking();
+                if (utensilOnTable.canAccept(ingredient)) { 
+                    utensilOnTable.addIngredient(ingredient);
+                    utensilOnTable.startCooking();
                     chef.setHeldItem(null);
-                    System.out.println("[Stove] " + ((Processable)ingredient).getName() + " masuk ke " + utensil.getName());
+                    System.out.println("[Stove] " + ((Processable)ingredient).getName() + " masuk ke " + utensilOnTable.getName());
                     return;
                 }
             }
             
-            
-            if (!chef.hasItem() && !utensil.isEmpty()) {
-                Processable result = utensil.getContents().get(0); 
+            // C. AMBIL HASIL MASAKAN DARI UTENSIL DI MEJA (Hanya COOKED/BURNED)
+            if (!chef.hasItem() && !utensilOnTable.isEmpty()) {
+                Processable result = utensilOnTable.getContents().get(0); 
+                
                 if (result.getState() == IngredientState.COOKED || result.getState() == IngredientState.BURNED) {
-                    Item takenItem = utensil.takeItem(); 
+                    Item takenItem = utensilOnTable.takeItem(); 
                     chef.setHeldItem(takenItem);
+                    
                     System.out.println("[Stove] " + chef.getName() + " mengambil hasil masakan: " + result.getName() + " (" + result.getState() + ")");
+                    return;
+                } else {
+                    // Masih RAW/Setengah Matang, Chef tidak bisa mengambilnya.
+                    System.out.println("[Stove] Masakan belum matang!");
                     return;
                 }
             }
         }
         
-       
-        // PLATING: Piring berada di meja
-        if (tableItem instanceof Plate && hand instanceof BaseCookingDevice && !((BaseCookingDevice)hand).isEmpty()) {
+        // --- 2. INTERAKSI DENGAN PLATE DI MEJA / UTENSIL DI TANGAN ---
+        
+        // D. PLATING: Piring berada di meja (Assembly)
+        if (tableItem instanceof Plate && hand instanceof BaseCookingDevice) {
             Plate plate = (Plate) tableItem;
-            BaseCookingDevice utensil = (BaseCookingDevice) hand;
+            BaseCookingDevice utensilInHand = (BaseCookingDevice) hand;
             
-            if (utensil.isCookedOrBurned() && !plate.isDirty() && plate.canAccept(utensil.getContents().get(0))) {
-                
-                Processable ingredientToPlate = (Processable) utensil.takeItem(); 
-                plate.addIngredient(ingredientToPlate);            
-                
-                System.out.println("[Stove: Plating] " + ingredientToPlate.getName() + " pindah dari " + utensil.getName() + " ke piring di meja.");
-                return;
+            if (!utensilInHand.isEmpty() && utensilInHand.isCookedOrBurned()) {
+                Processable ingredient = (Processable) utensilInHand.getContents().get(0);
+
+                if (!plate.isDirty() && plate.canAccept(ingredient)) {
+                    
+                    Processable ingredientToPlate = (Processable) utensilInHand.takeItem(); 
+                    plate.addIngredient(ingredientToPlate); 
+                    
+                    System.out.println("[Stove: Plating] " + ingredientToPlate.getName() + " pindah dari " + utensilInHand.getName() + " ke piring di meja.");
+                    return;
+                }
             }
         }
 
- 
-        if (isEmpty() && chef.hasItem() && !(chef.getHeldItem() instanceof BaseCookingDevice)) {
-            System.out.println("[!] Bahaya! Jangan taruh " + chef.getHeldItem().getName() + " di api.");
+        // --- 3. SWAP / TARUH / AMBIL UTENSIL/PLATE (Fungsi Meja Assembly) ---
+        
+        // E. TARUH/SWAP UTENSIL/PLATE 
+        if (chef.hasItem() && (hand instanceof BaseCookingDevice || hand instanceof Plate)) {
+            // Lakukan SWAP item
+            Item temp = chef.getHeldItem();
+            chef.setHeldItem(itemOnStation); 
+            itemOnStation = temp; 
+            
+            System.out.println("[Stove: Swap] Menukar item di tangan (" + itemOnStation.getName() + ") dengan item di meja (" + chef.getHeldItem().getName() + ").");
             return;
         }
 
-      
-        defaultInteract(chef);
+        // F. AMBIL UTENSIL/PLATE 
+        if (!chef.hasItem() && (tableItem instanceof BaseCookingDevice || tableItem instanceof Plate)) {
+            chef.setHeldItem(takeItem());
+            System.out.println("[Stove: Take] Mengambil " + chef.getHeldItem().getName() + " dari meja.");
+            return;
+        }
+
+        // G. Gagal: Taruh item non-utensil/non-plate
+        if (chef.hasItem() && !(hand instanceof BaseCookingDevice || hand instanceof Plate)) {
+            System.out.println("[!] Bahaya! Jangan taruh " + chef.getHeldItem().getName() + " langsung di kompor.");
+            return;
+        }
+
+        System.out.println("[!] Interaksi tidak valid.");
     }
 
     @Override
     public void update() {
+        // Proses Memasak HANYA BERJALAN jika ada BaseCookingDevice di stasiun.
         if (itemOnStation instanceof BaseCookingDevice) {
-            ((BaseCookingDevice) itemOnStation).processCookingTick();
+            ((BaseCookingDevice) itemOnStation).processCookingTick(); 
         }
     }
 }

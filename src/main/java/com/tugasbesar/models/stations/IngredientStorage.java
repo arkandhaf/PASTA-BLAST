@@ -22,27 +22,28 @@ public class IngredientStorage extends Station {
         Item hand = chef.getHeldItem();
         Item tableItem = itemOnStation;
         
-    
+        // --- 1. Plating (Assembly) Logic ---
         
-        // Kasus Piring di tangan (Plating Item di Meja)
+        // A. Piring di tangan: Ambil bahan dari Storage ke piring
         if (hand instanceof Plate && tableItem instanceof Processable) {
             Plate plate = (Plate) hand;
             Processable ingredient = (Processable) tableItem;
             
-            if (!plate.isDirty() && plate.canAccept(ingredient)) {
+            // Pastikan item di meja adalah ingredient utama dari storage
+            if (tableItem.getName().equalsIgnoreCase(ingredientName) && !plate.isDirty() && plate.canAccept(ingredient)) {
                 
                 takeItem(); 
                 plate.addIngredient(ingredient);
                 
-                //auto spawn new ingre di station
+                // auto spawn new ingredient
                 itemOnStation = createNewIngredient(); 
                 
-                System.out.println("[Storage: Assembly] " + ingredient.getName() + " berhasil memasukkan ke piring."); //posisi plate dipegang
+                System.out.println("[Storage: Assembly] " + ingredient.getName() + " berhasil dimasukkan ke piring.");
                 return;
             }
         }
         
-        // B. Kasus Piring di Meja (Plating Item di Tangan)
+        // B. Piring di meja: Masukkan bahan di tangan ke piring
         if (tableItem instanceof Plate && hand instanceof Processable) { 
             Plate p = (Plate) tableItem;
             Processable ing = (Processable) hand;
@@ -60,21 +61,43 @@ public class IngredientStorage extends Station {
             }
         }
         
-        //AMBIL ITEM DARI MEJA
-        if (hand == null) {
+        // --- 2. Take / Place / Swap Logic ---
 
+        // C. TARUH ITEM (Chef bawa item, Stasiun ada item BUKAN ingredient utama)
+        // Ini adalah skenario ketika Chef ingin menaruh Plate atau item lain di atas Storage.
+        if (chef.hasItem() && tableItem != null && !tableItem.getName().equalsIgnoreCase(ingredientName)) {
+             // Jika item di meja BUKAN item sumber (misal: piring lama), lakukan swap/place
+             
+             if (hand instanceof Plate || hand instanceof Processable) {
+                // Lakukan swap item, karena itemOnStation saat ini adalah Plate/item lain, bukan bahan sumber
+                Item temp = chef.getHeldItem();
+                chef.setHeldItem(itemOnStation);
+                itemOnStation = temp;
+                System.out.println("[Storage: Swap] Item di tangan ditukar dengan item di meja (" + chef.getHeldItem().getName() + ").");
+                return;
+             } else {
+                // Pengecekan keamanan: Jika item di tangan adalah sesuatu yang tidak relevan, tolak.
+                System.out.println("[Storage] Tidak bisa menaruh item ini di atas item yang ada.");
+                return;
+             }
+        }
+
+        // D. AMBIL ITEM (Chef tangan kosong)
+        if (hand == null) {
             if (tableItem != null) {
-                // Hanya izinkan ambil ingredient utama dari storage, bukan item lain yang ditaruh di atasnya.
+                
+                // i. Ambil Ingredient Utama (Sumber Tak Terbatas)
                 if (tableItem.getName().equalsIgnoreCase(ingredientName)) {
                     
-                    chef.setHeldItem(takeItem()); // Chef ambil item
+                    chef.setHeldItem(takeItem()); 
                     
-                    //unlimited source
+                    // Isi kembali stasiun dengan item baru
                     itemOnStation = createNewIngredient(); 
                     
                     System.out.println("[Storage] " + chef.getName() + " mengambil " + chef.getHeldItem().getName() + " & Stasiun terisi kembali.");
+                
+                // ii. Ambil Item Non-Sumber (Plate/Item Tertinggal)
                 } else {
-                   
                     chef.setHeldItem(takeItem());
                     System.out.println("[Storage] " + chef.getName() + " mengambil " + chef.getHeldItem().getName() + " yang tertinggal di atas kotak.");
                 }
@@ -82,12 +105,40 @@ public class IngredientStorage extends Station {
             return;
         }
 
-    
+        // E. TARUH PLATE/ITEM (Chef bawa item, Stasiun ada ingredient utama)
+        // Chef ingin menaruh Plate/item lain di atas Ingredient utama yang tak terbatas.
+        if (chef.hasItem() && tableItem != null && tableItem.getName().equalsIgnoreCase(ingredientName)) {
+            if (hand instanceof Plate || (hand instanceof Processable && !hand.getName().equalsIgnoreCase(ingredientName))) {
+                
+                Item itemToPlace = chef.getHeldItem();
+                
+                // Cek agar tidak menaruh dua item Processable di atas satu sama lain 
+                // (kecuali Plate, karena Plate adalah wadah, tapi ini berisiko dalam logic Assembly B)
+                if (tableItem instanceof Processable && hand instanceof Processable) {
+                    System.out.println("[Storage] Tidak bisa menaruh item di atas bahan sumber yang terbuka.");
+                    return;
+                }
+                
+                // Jika Chef bawa Plate, taruh plate dan ambil bahan sumber di bawahnya (Swap Implisit)
+                if (hand instanceof Plate) {
+                    chef.setHeldItem(takeItem()); // Ambil Bahan Sumber
+                    placeItem(itemToPlace); // Taruh Plate
+                    // Catatan: Chef sekarang memegang bahan sumber
+                    System.out.println("[Storage: Place Plate] Piring ditaruh. Chef sekarang memegang " + chef.getHeldItem().getName() + ".");
+                    return;
+                }
+                
+                System.out.println("[Storage] Tempat penuh atau interaksi menaruh tidak valid.");
+                return;
+            }
+        }
+        
         System.out.println("[!] Tempat penuh atau interaksi tidak valid (Bukan Plating/Ambil).");
     }
 
     // Helper: membuat ingredient baru (tanpa pesan log)
     private Item createNewIngredient() {
+        // Implementasi tetap sama, diasumsikan IngredientFactory sudah benar.
         switch (ingredientName.toLowerCase()) {
             case "tomato":
                 return IngredientFactory.createTomato();
@@ -100,7 +151,7 @@ public class IngredientStorage extends Station {
             case "shrimp":
                 return IngredientFactory.createShrimp();
             default:
-                System.out.println("[Error] Tipe bahan tidak dikenal: " + ingredientName);
+                // Error pada runtime jika nama bahan tidak terdaftar
                 return null;
         }
     }
