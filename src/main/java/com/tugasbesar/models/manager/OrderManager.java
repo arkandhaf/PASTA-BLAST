@@ -77,7 +77,11 @@ public class OrderManager {
         // after checking all of active order, none need the dish inputted, give false
         return false;
     }
-
+    /**
+     * find ingredients that matches a recipe in the level and return the recipee
+     * @param ingredientsString
+     * @return Recipe
+     */
     public Recipe findMatchingRecipe(List<String> ingredientsString){
         for (Recipe recipe : availableRecipe) {
             // Get recipe ingredients as strings
