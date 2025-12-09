@@ -1,5 +1,3 @@
-// File: com.tugasbesar.models.item.Ingredient.java
-
 package com.tugasbesar.models.item;
 
 import com.tugasbesar.models.abstracts.Item;

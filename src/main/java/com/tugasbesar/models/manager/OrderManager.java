@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.tugasbesar.models.item.Dish;
+import com.tugasbesar.models.item.Ingredient;
 public class OrderManager {
     private static OrderManager instance;
     
@@ -75,6 +76,32 @@ public class OrderManager {
         }
         // after checking all of active order, none need the dish inputted, give false
         return false;
+    }
+    /**
+     * find ingredients that matches a recipe in the level and return the recipee
+     * @param ingredientsString
+     * @return Recipe
+     */
+    public Recipe findMatchingRecipe(List<String> ingredientsString){
+        for (Recipe recipe : availableRecipe) {
+            // Get recipe ingredients as strings
+            List<String> recipeIngredients = new ArrayList<>();
+            for (Ingredient ingredient : recipe.requirements) {
+                recipeIngredients.add(ingredient.toString());
+            }
+            
+            // Check if sizes match
+            if (recipeIngredients.size() != ingredientsString.size()) {
+                continue;
+            }
+            
+            // Check if all ingredients match (order doesn't matter)
+            if (recipeIngredients.containsAll(ingredientsString) && 
+                ingredientsString.containsAll(recipeIngredients)) {
+                return recipe;  // Found matching recipe
+            }
+        }
+        return null;  // No matching recipe found
     }
 
     public void completeOrder(Order order){

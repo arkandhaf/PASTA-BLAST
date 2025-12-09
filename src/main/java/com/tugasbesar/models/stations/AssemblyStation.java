@@ -3,7 +3,7 @@
     import com.tugasbesar.models.actors.Chef;
     import com.tugasbesar.models.abstracts.Item;
     import com.tugasbesar.models.interfaces.Processable; 
-    import com.tugasbesar.models.interfaces.Placeable; 
+    
     import com.tugasbesar.models.enums.IngredientState;
 
     import com.tugasbesar.models.item.Dish;
@@ -12,7 +12,7 @@
     import com.tugasbesar.models.manager.OrderManager; // Import class OrderManager
     import com.tugasbesar.models.manager.Recipe; 
 
-    import java.util.ArrayList;
+   
     import java.util.List;
     import java.util.stream.Collectors;
 
@@ -127,7 +127,7 @@
                 .collect(Collectors.toList()); 
             
             // 2. Cari resep yang cocok MENGGUNAKAN INSTANCE YANG ADA
-            Recipe recipeMatch = orderManager.findMatchingRecipe(contentsInStringFormat); // <--- PERUBAHAN DI SINI
+            Recipe recipeMatch = orderManager.findMatchingRecipe(contentsInStringFormat); 
             
             if (recipeMatch != null) {
                 // Kosongkan piring
