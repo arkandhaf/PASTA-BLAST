@@ -20,7 +20,7 @@ public class MapParser {
         map = new ArrayList<>();
 
         // split by line
-        String[] lines = mapContent.split("\n");
+        String[] lines = mapContent.split("\\r?\\n");  // Handles both \n and \r\n
         for (String line:lines){
             List<Character> row = new ArrayList<>();
             for (char c : line.toCharArray()){

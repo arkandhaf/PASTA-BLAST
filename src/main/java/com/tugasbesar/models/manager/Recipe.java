@@ -5,7 +5,7 @@ import java.util.List;
 import  com.tugasbesar.models.item.Dish;
 import com.tugasbesar.models.item.Ingredient;
 public class Recipe {
-    public String recipeName;
+    private final String recipeName;
     public List<Ingredient> requirements;
 
     public Recipe(String recipeName, List<Ingredient> requirements){
@@ -31,5 +31,9 @@ public class Recipe {
             }
         }
         return true;
+    }
+
+    public String getRecipeName(){
+        return this.recipeName;
     }
 }

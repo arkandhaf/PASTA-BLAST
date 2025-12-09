@@ -1,10 +1,10 @@
 package com.tugasbesar.models.manager;
-import Recipe.java;
+import com.tugasbesar.models.item.Dish;
 public class Order {
-    public Recipe recipe;
-    public float timerRemaining;
-    public boolean isCompleted;
-    public boolean isFailed;
+    private final Recipe recipe;
+    private float timerRemaining;
+    private boolean isCompleted;
+    private boolean isFailed;
 
     /**
      * create new order
@@ -18,20 +18,40 @@ public class Order {
         this.isFailed = false;
     }
     public void update(){
-        timerRemaining--;
+        this.timerRemaining--;
     }
 
     public boolean isExpired(){
-        if (timerRemaining <= 0){
-            this.isFailed = true;
-            return isFailed;
-        }
-        return false;
+        return this.timerRemaining <= 0;
     }
-
-    public boolean  validateDish(Dish dish){
-
+    /**
+     * Validate dish by making conditional to the recipe attribute
+     * @param dish
+     * @return
+     */
+    public boolean validateDish(Dish dish){
+        return this.recipe.matches(dish);
     }
     
+    public void setOrderComplete(){
+        this.isCompleted = true;
+        this.isFailed = false;
+    }
+    public void setOrderFailed(){
+        this.isCompleted = false;
+        this.isFailed = true;
+    }
+    public Recipe getRecipe(){
+        return this.recipe;
+    }
+    public boolean isFailed(){
+        return this.isFailed;
+    }
+    public boolean isCompleted(){
+        return this.isCompleted;
+    }
+    public float getTimerRemaining(){
+        return this.timerRemaining;
+    }
 
 }
