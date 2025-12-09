@@ -11,8 +11,8 @@ import com.tugasbesar.models.enums.IngredientState;
 import com.tugasbesar.models.item.Dish;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
 
-import com.tugasbesar.core.models.manager.OrderManager; 
-import com.tugasbesar.core.models.manager.Recipe; 
+import com.tugasbesar.models.manager.OrderManager; 
+import com.tugasbesar.models.manager.Recipe; 
 
 import java.util.ArrayList;
 import java.util.List;

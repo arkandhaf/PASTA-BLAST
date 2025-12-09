@@ -5,16 +5,33 @@ import java.util.Random;
 
 import com.tugasbesar.models.item.Dish;
 public class OrderManager {
+    private static OrderManager instance;
+    
     private List<Order> activeOrder;
-    private final List<Recipe> availableRecipe;
+    private List<Recipe> availableRecipe;
     private float spawnCooldown;
     private float spawnTimer;
 
-    public OrderManager(List<Recipe> availableRecipe, float spawnCooldown){
+    // Private constructor
+    private OrderManager(){
         this.activeOrder = new ArrayList<>();
-        this.availableRecipe = availableRecipe;
-        this.spawnCooldown = spawnCooldown;
+        this.availableRecipe = new ArrayList<>();
+        this.spawnCooldown = 10.0f;  // Default value
         this.spawnTimer = 0;
+    }
+    
+    // Get the single instance
+    public static OrderManager getInstance() {
+        if (instance == null) {
+            instance = new OrderManager();
+        }
+        return instance;
+    }
+    
+    // Initialize with recipes (call once at game start)
+    public void initialize(List<Recipe> recipes, float cooldown) {
+        this.availableRecipe = recipes;
+        this.spawnCooldown = cooldown;
     }
     /**
      * update times on orderManager side, doesnt include update timer for order
