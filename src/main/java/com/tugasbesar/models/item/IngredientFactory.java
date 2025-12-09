@@ -7,7 +7,7 @@ public class IngredientFactory {
     }
 
     public static Ingredient createPasta() {
-        // Pasta: Tidak bisa dipotong (langsung rebus)
+        // pasta gabisa dipotong (langsung rebus)
         return new Ingredient("Pasta", false); 
     }
 

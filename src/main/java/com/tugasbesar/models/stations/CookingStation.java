@@ -1,53 +1,82 @@
 package com.tugasbesar.models.stations;
 
 import com.tugasbesar.models.actors.Chef;
-import com.tugasbesar.models.interfaces.Preparable;
+import com.tugasbesar.models.abstracts.Item; 
+
+import com.tugasbesar.models.interfaces.Cookable; 
+import com.tugasbesar.models.interfaces.Processable; 
+
 import com.tugasbesar.models.item.kitchen_utensil.BaseCookingDevice;
+import com.tugasbesar.models.enums.IngredientState; 
 
 public class CookingStation extends Station {
 
     public CookingStation(int x, int y, BaseCookingDevice startingUtensil) {
-        super(x, y, "Stove", "S");
-        this.itemOnStation = startingUtensil; // Pasang panci di awal
+    
+        super(x, y, "Stove", "R"); 
+        this.itemOnStation = startingUtensil; 
     }
 
     @Override
     public void interact(Chef chef) {
-        // --- 1. Masukkan Bahan ke Panci ---
-        if (itemOnStation instanceof BaseCookingDevice) {
-            BaseCookingDevice utensil = (BaseCookingDevice) itemOnStation;
+        Item hand = chef.getHeldItem();
+        Item tableItem = itemOnStation;
 
-            if (chef.hasItem() && chef.getHeldItem() instanceof Preparable) {
-                Preparable ingredient = (Preparable) chef.getHeldItem();
+    
+        if (tableItem instanceof BaseCookingDevice) {
+            BaseCookingDevice utensil = (BaseCookingDevice) tableItem;
 
-                if (utensil.canAccept(ingredient)) {
+     
+            // cek apakah item di tangan Cookable
+            if (chef.hasItem() && hand instanceof Cookable) { 
+                Cookable ingredient = (Cookable) hand;
+
+                
+                if (utensil.canAccept(ingredient)) { 
                     utensil.addIngredient(ingredient);
-
-                    utensil.startCooking();
+                    utensil.startCooking(); // auto cook 
 
                     chef.setHeldItem(null);
-                    System.out.println("[Stove] " + ingredient.getName() + " masuk ke " + utensil.getName());
+                    System.out.println("[Stove] " + ((Processable)ingredient).getName() + " masuk ke " + utensil.getName());
+                    return;
+                }
+            }
+            
+            //AMBIL HASIL MASAKAN (Matang atau Gosong)
+            // Chef tangan kosong mengambil hasil dari utensil di stove
+            if (!chef.hasItem() && !utensil.isEmpty()) {
+                
+            
+                Processable result = utensil.getContents().get(0); 
+
+                if (result.getState() == IngredientState.COOKED || result.getState() == IngredientState.BURNED) {
+                    
+                    // ambil item dari Utensil 
+                    Item takenItem = utensil.takeItem(); 
+                    chef.setHeldItem(takenItem);
+                    
+            
+                    System.out.println("[Stove] " + chef.getName() + " mengambil hasil masakan: " + result.getName() + " (" + result.getState() + ")");
                     return;
                 }
             }
         }
+        
 
-        // --- 2. Safety: Cegah taruh barang sembarangan ---
-        // Kalau meja kosong, hanya boleh taruh Panci/Wajan
-        if (isEmpty() && chef.hasItem()) {
-            if (!(chef.getHeldItem() instanceof BaseCookingDevice)) {
-                System.out.println("[!] Bahaya! Jangan taruh " + chef.getHeldItem().getName() + " di api.");
-                return;
-            }
+        // 3. taruh Panci / angkat Panci / safety 
+        // safety: cegah taruh barang sembarangan di stove kosong (takda utensil)
+        if (isEmpty() && chef.hasItem() && !(chef.getHeldItem() instanceof BaseCookingDevice)) {
+            System.out.println("[!] Bahaya! Jangan taruh " + chef.getHeldItem().getName() + " di api.");
+            return;
         }
 
-        // --- 3. Angkat / Taruh Panci ---
+        // angkat / taruh Panci
         defaultInteract(chef);
     }
 
     @Override
     public void update() {
-        // Masak otomatis (Timer jalan terus)
+        // auto-cook (timer jalan terus)
         if (itemOnStation instanceof BaseCookingDevice) {
             ((BaseCookingDevice) itemOnStation).processCookingTick();
         }
