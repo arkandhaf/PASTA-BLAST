@@ -14,8 +14,8 @@ public abstract class BaseCookingDevice extends KitchenUtensil implements Cookin
     // timer
     protected boolean isCooking = false;
     protected int currentTick = 0;
-    protected final int TICKS_TO_COOK = 5;
-    protected final int TICKS_TO_BURN = 10;
+    protected final int TICKS_TO_COOK = 12;
+    protected final int TICKS_TO_BURN = 25;
 
     public BaseCookingDevice(String name, int capacityLimit) {
         super(name); 
@@ -105,6 +105,11 @@ public abstract class BaseCookingDevice extends KitchenUtensil implements Cookin
     @Override
     public boolean isCooked() {
         return currentTick >= TICKS_TO_COOK && currentTick < TICKS_TO_BURN;
+    }
+
+    //cek kondisi 
+    public boolean isCookedOrBurned() {
+        return isCooked() || isBurned();
     }
     
     @Override

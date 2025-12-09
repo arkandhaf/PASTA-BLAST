@@ -2,11 +2,7 @@ package com.tugasbesar.models.stations;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.abstracts.Item;
-// Hapus: import com.tugasbesar.models.interfaces.Preparable;
-
-// Import interface baru yang relevan
 import com.tugasbesar.models.interfaces.Processable; 
-
 import com.tugasbesar.models.item.IngredientFactory;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
 
@@ -17,87 +13,95 @@ public class IngredientStorage extends Station {
     public IngredientStorage(int x, int y, String ingredientName) {
         super(x, y, "Storage: " + ingredientName, "I");
         this.ingredientName = ingredientName;
+        // Inisialisasi: Pastikan Item pertama sudah ada di Station saat game dimulai
+        this.itemOnStation = createNewIngredient(); 
     }
 
     @Override
     public void interact(Chef chef) {
         Item hand = chef.getHeldItem();
         Item tableItem = itemOnStation;
-
         
-        // 1. TANGAN CHEF KOSONG (AMBIL) 
-        if (hand == null) {
+    
+        
+        // Kasus Piring di tangan (Plating Item di Meja)
+        if (hand instanceof Plate && tableItem instanceof Processable) {
+            Plate plate = (Plate) hand;
+            Processable ingredient = (Processable) tableItem;
             
-            // A. kalau ada barang tertinggal di atas kotak -> AMBIL ITU DULU
-            if (tableItem != null) {
-                chef.setHeldItem(takeItem());
-                System.out.println("[Storage] Mengambil " + chef.getHeldItem().getName() + " dari atas kotak.");
-            } 
-            
-            // B. SPAWN BAHAN BARU (Unlimited)
-            else {
-                spawnIngredient(chef);
+            if (!plate.isDirty() && plate.canAccept(ingredient)) {
+                
+                takeItem(); 
+                plate.addIngredient(ingredient);
+                
+                //auto spawn new ingre di station
+                itemOnStation = createNewIngredient(); 
+                
+                System.out.println("[Storage: Assembly] " + ingredient.getName() + " berhasil memasukkan ke piring."); //posisi plate dipegang
+                return;
             }
+        }
+        
+        // B. Kasus Piring di Meja (Plating Item di Tangan)
+        if (tableItem instanceof Plate && hand instanceof Processable) { 
+            Plate p = (Plate) tableItem;
+            Processable ing = (Processable) hand;
+            
+            if (p.canAccept(ing)) { 
+                
+                p.addIngredient(ing);
+                chef.setHeldItem(null); 
+                
+                System.out.println("[Storage: Assembly] Memasukkan " + ing.getName() + " ke dalam Piring di meja.");
+                return;
+            } else {
+                System.out.println("[Storage] Tidak bisa dimasukkan. Piring kotor atau bahan tidak siap/cocok.");
+                return;
+            }
+        }
+        
+        //AMBIL ITEM DARI MEJA
+        if (hand == null) {
+
+            if (tableItem != null) {
+                // Hanya izinkan ambil ingredient utama dari storage, bukan item lain yang ditaruh di atasnya.
+                if (tableItem.getName().equalsIgnoreCase(ingredientName)) {
+                    
+                    chef.setHeldItem(takeItem()); // Chef ambil item
+                    
+                    //unlimited source
+                    itemOnStation = createNewIngredient(); 
+                    
+                    System.out.println("[Storage] " + chef.getName() + " mengambil " + chef.getHeldItem().getName() + " & Stasiun terisi kembali.");
+                } else {
+                   
+                    chef.setHeldItem(takeItem());
+                    System.out.println("[Storage] " + chef.getName() + " mengambil " + chef.getHeldItem().getName() + " yang tertinggal di atas kotak.");
+                }
+            } 
             return;
         }
 
-
-        // 2. TANGAN CHEF ADA ITEM (TARUH / RAKIT)
-        if (hand != null) {
-            
-            // Logic Plating
-            // kalau di atas kotak ada piring, Chef bawa bahan (Processable) -> masukin bahan ke piring
-            if (tableItem instanceof Plate && hand instanceof Processable) { 
-                Plate p = (Plate) tableItem;
-                Processable ing = (Processable) hand;
-                
-                // Plate.canAccept sekarang menerima Processable
-                if (p.canAccept(ing)) { 
-                    p.addIngredient(ing);
-                    chef.setHeldItem(null); 
-                    System.out.println("[Storage] Merakit " + ing.getName() + " ke dalam Piring.");
-                    return;
-                } else {
-                    // Pesan jika piring kotor atau item tidak bisa ditaruh (misal: gosong)
-                    System.out.println("[Storage] Tidak bisa merakit. Piring kotor atau bahan tidak siap/cocok.");
-                    return;
-                }
-            }
-
-            // kalau di atas kotak kosong -> taruh barang apa aja (piring/panci/bahan)
-            if (isEmpty()) {
-                placeItem(hand);
-                chef.setHeldItem(null);
-                System.out.println("[Storage] Menaruh " + itemOnStation.getName() + " di atas kotak " + ingredientName);
-            } 
-            else {
-                System.out.println("[!] Tempat penuh! Tidak bisa menumpuk barang.");
-            }
-        }
+    
+        System.out.println("[!] Tempat penuh atau interaksi tidak valid (Bukan Plating/Ambil).");
     }
 
-    // helper untuk spawn bahan (sama kayak factory)
-    private void spawnIngredient(Chef chef) {
+    // Helper: membuat ingredient baru (tanpa pesan log)
+    private Item createNewIngredient() {
         switch (ingredientName.toLowerCase()) {
             case "tomato":
-                chef.setHeldItem(IngredientFactory.createTomato());
-                break;
+                return IngredientFactory.createTomato();
             case "beef":
-                chef.setHeldItem(IngredientFactory.createBeef());
-                break;
+                return IngredientFactory.createBeef();
             case "pasta":
-                chef.setHeldItem(IngredientFactory.createPasta());
-                break;
+                return IngredientFactory.createPasta();
             case "fish": 
-                chef.setHeldItem(IngredientFactory.createFish());
-                break;
+                return IngredientFactory.createFish();
             case "shrimp":
-                chef.setHeldItem(IngredientFactory.createShrimp());
-                break;
+                return IngredientFactory.createShrimp();
             default:
                 System.out.println("[Error] Tipe bahan tidak dikenal: " + ingredientName);
-                return;
+                return null;
         }
-        System.out.println("[Storage] Spawn bahan baru: " + ingredientName);
     }
 }

@@ -5,9 +5,9 @@ import com.tugasbesar.models.item.kitchen_utensil.Plate;
 import com.tugasbesar.models.item.Dish; 
 import com.tugasbesar.models.interfaces.Processable;
 
-// ASUMSI: Import OrderManager dan ScoreManager (jika ada) sudah disiapkan
+
 import com.tugasbesar.core.models.manager.OrderManager; 
-// import com.tugasbesar.core.models.manager.ScoreManager; // Asumsi ada ScoreManager
+
 
 public class ServingStation extends Station {
 
@@ -20,7 +20,7 @@ public class ServingStation extends Station {
 
     @Override
     public void interact(Chef chef) {
-        // 1. Validasi Awal (Chef bawa Plate)
+        // chef bawa plate
         if (!chef.hasItem() || !(chef.getHeldItem() instanceof Plate)) {
             System.out.println("[Serving] Bawa piring berisi makanan ke sini!");
             return;
@@ -28,18 +28,19 @@ public class ServingStation extends Station {
 
         Plate plate = (Plate) chef.getHeldItem();
 
-        // 2. Validasi Piring
+        // piring kosong
         if (plate.getContents().isEmpty()) {
-            System.out.println("[Serving] Jangan sajikan piring kosong! Pelanggan tidak senang.");
+            System.out.println("[Serving] Jangan sajikan piring kosong!");
             return;
         }
 
+        // kondisi piring
         if (plate.isDirty()) {
             System.out.println("[Serving] Piring ini kotor (sisa). Silakan cuci dulu!");
             return;
         }
         
-        // 3. Validasi Dish (Apakah sudah dirakit menjadi Dish?)
+        // dah jadi dish apa belum
         Processable content = plate.getContents().get(0);
         if (!(content instanceof Dish)) {
             System.out.println("[Serving] Makanan belum dirakit sempurna. Silakan ke Assembly Station dulu!");
@@ -50,14 +51,14 @@ public class ServingStation extends Station {
 
 
         
-        // Cek ke OrderManager apakah Dish ini cocok dengan salah satu pesanan aktif
+        // cek ke OrderManager cocok apa tidak
         boolean isCorrectOrder = OrderManager.getInstance().checkOrder(dish);
         
         if (isCorrectOrder) {
             System.out.println("🎉 >>> [Serving] Disajikan: " + dish.getRecipeName() + " — Pesanan Tepat! Skor bertambah.");
 
         } else {
-            System.out.println("❌ >>> [Serving] Disajikan: " + dish.getRecipeName() + " — Pesanan SALAH/Kadaluarsa! Skor berkurang.");
+            System.out.println("❌ >>> [Serving] Disajikan: " + dish.getRecipeName() + " — Pesanan SALAH! Skor berkurang.");
   
         }
     
@@ -70,7 +71,7 @@ public class ServingStation extends Station {
             System.out.println("[Serving] Piring kotor kembali ke Storage.");
         }
 
-        // Kosongkan tangan Chef
+        // ksongkan tangan Chef
         chef.setHeldItem(null);
     }
 }

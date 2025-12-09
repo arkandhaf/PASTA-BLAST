@@ -23,7 +23,7 @@ public abstract class Station {
     }
 
 
-    // dipanggil ketika menekan tombol Interaksi (Space/E)
+    // dipanggil untuk interact
     public abstract void interact(Chef chef);
 
 

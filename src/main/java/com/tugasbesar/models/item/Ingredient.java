@@ -48,7 +48,7 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
     
     @Override
     public boolean canBePlacedOnPlate() {
-        // Hanya yang tidak gosong yang boleh ditaruh di piring
+        //cuman yang gak gosong yang boleh ditaruh di piring
         return state != IngredientState.BURNED;
     }
 
