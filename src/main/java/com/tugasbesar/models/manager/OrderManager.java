@@ -6,7 +6,7 @@ import java.util.Random;
 import com.tugasbesar.models.item.Dish;
 public class OrderManager {
     private List<Order> activeOrder;
-    private List<Recipe> availableRecipe;
+    private final List<Recipe> availableRecipe;
     private float spawnCooldown;
     private float spawnTimer;
 
@@ -45,15 +45,19 @@ public class OrderManager {
      * it means the dish can finish an order. A dish must be appropriate to the recipe
      * equals the dish has the same ingredients as the recipe.
      */
-    public boolean checkOrder(Dish dish){
+    public boolean findAndCompleteOrder(Dish dish){
         String dishRecipeName = dish.getRecipeName();
-        // making List string for collecting recipe name for every active order
-        List<String> activeOrderRecipeName = new ArrayList<>();
+        // checks dish recipe is needed in one of activeOrder recipe
         for (Order order : this.activeOrder){
-            activeOrderRecipeName.add(order.getRecipe().getRecipeName());
+            String orderRecipeName = order.getRecipe().getRecipeName();
+            if (orderRecipeName.equals(dishRecipeName)){
+                completeOrder(order);
+                this.activeOrder.remove(order);
+                return true;
+            }
         }
-        // checks if dishString recipeName is contained in the activeOrderRecipeName
-        return activeOrderRecipeName.contains(dishRecipeName);
+        // after checking all of active order, none need the dish inputted, give false
+        return false;
     }
 
     public void completeOrder(Order order){

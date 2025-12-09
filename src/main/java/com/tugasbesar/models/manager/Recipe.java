@@ -14,19 +14,19 @@ public class Recipe {
     }
 
     public boolean matches (Dish dish){
-        List<String> dishIngredients = dish.getRequiredIngredients();
+        List<String> dishIngredientsString = dish.getRequiredIngredients();
         // make list for toString ingredient
-        List<String> recipeIngredients = new ArrayList<>();
+        List<String> recipeIngredientsString = new ArrayList<>();
         for(Ingredient ingredient : this.requirements){
-            recipeIngredients.add(ingredient.toString());
+            recipeIngredientsString.add(ingredient.toString());
         }
         // checking ingredient length recipe == dish
-        if (recipeIngredients.size() != dishIngredients.size()){
+        if (recipeIngredientsString.size() != dishIngredientsString.size()){
             return false;
         }
-        // checking dish ingredeint in strings
-        for (String ingredient : recipeIngredients ){
-            if (!dishIngredients.contains(ingredient)){
+        // checking dish ingredient in strings
+        for (String ingredient : recipeIngredientsString ){
+            if (!dishIngredientsString.contains(ingredient)){
                 return false;
             }
         }
