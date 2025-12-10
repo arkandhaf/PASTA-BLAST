@@ -55,6 +55,19 @@ public class KeyHandler implements KeyListener {
         else if (gp.gameState == gp.pauseState) {
             if (code == KeyEvent.VK_P) gp.gameState = gp.playState;
         }
+        
+        // --- GAME OVER STATE ---
+        else if (gp.gameState == gp.gameOverState) {
+            if (code == KeyEvent.VK_ENTER) {
+                // Reset game
+                gp.gameState = gp.titleState;
+                gp.gameTime = 180;
+                gp.isGameRunning = true;
+            }
+            if (code == KeyEvent.VK_ESCAPE) {
+                System.exit(0); // Quit game
+            }
+        }
     }
 
     @Override

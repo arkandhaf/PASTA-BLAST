@@ -34,6 +34,7 @@ public class GamePanel extends JPanel implements Runnable {
     public final int titleState = 0;
     public final int playState = 1;
     public final int pauseState = 2;
+    public final int gameOverState = 3;
 
     public KeyHandler keyH = new KeyHandler(this);
     public CollisionChecker cChecker = new CollisionChecker(this);
@@ -58,6 +59,7 @@ public class GamePanel extends JPanel implements Runnable {
         this.setBackground(Color.BLACK);
         this.setDoubleBuffered(true);
         this.addKeyListener(keyH);
+        this.addMouseListener(new MouseHandler(this));
         this.setFocusable(true);
         
         chef1 = new Chef(this, keyH, "P1", 1);
@@ -140,39 +142,178 @@ public class GamePanel extends JPanel implements Runnable {
         Graphics2D g2 = (Graphics2D) g;
 
         if (gameState == titleState) {
-            g2.setColor(Color.WHITE);
-            g2.drawString("PRESS ENTER TO START", 100, 100);
-        } else {
-            // 1. Gambar Lantai (Background)
-            if (mapParser != null) mapParser.draw(g2); 
-
-            // 2. Gambar Stations
-            for (int i = 0; i < station.length; i++) {
-                if (station[i] != null) station[i].draw(g2);
+            drawTitleScreen(g2);
+        } else if (gameState == playState || gameState == pauseState) {
+            drawGameScreen(g2);
+            
+            if (gameState == pauseState) {
+                drawPauseOverlay(g2);
             }
-
-            // 3. Gambar Chefs
-            chef1.draw(g2);
-            chef2.draw(g2);
-            
-            // 4. UI
-            g2.setColor(Color.WHITE);
-            g2.setFont(g2.getFont().deriveFont(30F)); 
-            g2.drawString("Time: " + gameTime, 20, 40); 
-            
-            Chef activeChef = (activePlayerID == 1) ? chef1 : chef2;
-            g2.setColor(Color.YELLOW);
-            g2.setFont(new Font("Arial", Font.BOLD, 12)); 
-            g2.drawString("▼ YOU", activeChef.x + 8, activeChef.y - 10);
-            
-            if(gameState == pauseState) {
-                g2.setColor(new Color(0,0,0,150));
-                g2.fillRect(0, 0, screenWidth, screenHeight);
-                g2.setColor(Color.WHITE);
-                g2.setFont(g2.getFont().deriveFont(50F));
-                g2.drawString("PAUSED", screenWidth/2 - 100, screenHeight/2);
-            }
+        } else if (gameState == gameOverState) {
+            drawGameOverScreen(g2);
         }
         g2.dispose();
+    }
+
+    private void drawTitleScreen(Graphics2D g2) {
+        // Background
+        g2.setColor(new Color(20, 20, 40));
+        g2.fillRect(0, 0, screenWidth, screenHeight);
+        
+        // Title
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Arial", Font.BOLD, 48));
+        String title = "PASTA NIMOS COOKED";
+        int titleWidth = g2.getFontMetrics().stringWidth(title);
+        g2.drawString(title, (screenWidth - titleWidth) / 2, 80);
+        
+        // Subtitle
+        g2.setColor(new Color(200, 200, 200));
+        g2.setFont(new Font("Arial", Font.PLAIN, 20));
+        String subtitle = "2-Player Cooperative Cooking Game";
+        int subtitleWidth = g2.getFontMetrics().stringWidth(subtitle);
+        g2.drawString(subtitle, (screenWidth - subtitleWidth) / 2, 130);
+        
+        // Instructions
+        g2.setColor(Color.YELLOW);
+        g2.setFont(new Font("Arial", Font.BOLD, 24));
+        String start = "PRESS ENTER TO START";
+        int startWidth = g2.getFontMetrics().stringWidth(start);
+        g2.drawString(start, (screenWidth - startWidth) / 2, 200);
+        
+        // Controls help
+        g2.setColor(new Color(150, 150, 150));
+        g2.setFont(new Font("Arial", Font.PLAIN, 14));
+        String[] controls = {
+            "Controls:",
+            "W/A/S/D - Move",
+            "SPACE - Interact",
+            "SHIFT - Dash",
+            "ENTER - Swap Players",
+            "P - Pause/Resume"
+        };
+        int startY = 280;
+        for (String control : controls) {
+            g2.drawString(control, (screenWidth - g2.getFontMetrics().stringWidth(control)) / 2, startY);
+            startY += 25;
+        }
+    }
+
+    private void drawGameScreen(Graphics2D g2) {
+        // 1. Draw Floor (Background)
+        if (mapParser != null) mapParser.draw(g2);
+
+        // 2. Draw Stations
+        for (int i = 0; i < station.length; i++) {
+            if (station[i] != null) station[i].draw(g2);
+        }
+
+        // 3. Draw Chefs
+        chef1.draw(g2);
+        chef2.draw(g2);
+        
+        // 4. Draw Active Player Indicator
+        Chef activeChef = (activePlayerID == 1) ? chef1 : chef2;
+        g2.setColor(Color.YELLOW);
+        g2.setFont(new Font("Arial", Font.BOLD, 12));
+        g2.drawString("▼ YOU", activeChef.x + 8, activeChef.y - 10);
+        
+        // 5. Draw HUD
+        drawHUD(g2);
+    }
+
+    private void drawHUD(Graphics2D g2) {
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Arial", Font.BOLD, 20));
+        
+        // Timer
+        String timeStr = formatTime(gameTime);
+        g2.drawString("Time: " + timeStr, 20, 40);
+        
+        // Active Player
+        g2.setColor(Color.CYAN);
+        g2.setFont(new Font("Arial", Font.PLAIN, 14));
+        g2.drawString("Active Player: P" + activePlayerID, 20, 65);
+        
+        // Orders
+        if (orderManager != null) {
+            g2.setColor(Color.LIME);
+            g2.drawString("Orders Completed: " + orderManager.getOrderCount(), 20, 85);
+        }
+        
+        // Instructions (bottom)
+        g2.setColor(new Color(150, 150, 150));
+        g2.setFont(new Font("Arial", Font.PLAIN, 10));
+        g2.drawString("W/A/S/D: Move | SPACE: Interact | SHIFT: Dash | ENTER: Swap | P: Pause", 20, screenHeight - 10);
+    }
+
+    private void drawPauseOverlay(Graphics2D g2) {
+        // Semi-transparent overlay
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.fillRect(0, 0, screenWidth, screenHeight);
+        
+        // Pause text
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Arial", Font.BOLD, 60));
+        String pauseText = "PAUSED";
+        int pauseWidth = g2.getFontMetrics().stringWidth(pauseText);
+        g2.drawString(pauseText, (screenWidth - pauseWidth) / 2, screenHeight / 2 - 50);
+        
+        // Resume instruction
+        g2.setFont(new Font("Arial", Font.PLAIN, 20));
+        String resumeText = "Press P to Resume";
+        int resumeWidth = g2.getFontMetrics().stringWidth(resumeText);
+        g2.drawString(resumeText, (screenWidth - resumeWidth) / 2, screenHeight / 2 + 40);
+    }
+
+    private String formatTime(int seconds) {
+        int mins = seconds / 60;
+        int secs = seconds % 60;
+        return String.format("%02d:%02d", mins, secs);
+    }
+
+    private void drawGameOverScreen(Graphics2D g2) {
+        // Background
+        g2.setColor(new Color(20, 10, 10));
+        g2.fillRect(0, 0, screenWidth, screenHeight);
+        
+        // Game Over Title
+        g2.setColor(Color.RED);
+        g2.setFont(new Font("Arial", Font.BOLD, 60));
+        String gameOverText = "GAME OVER";
+        int gameOverWidth = g2.getFontMetrics().stringWidth(gameOverText);
+        g2.drawString(gameOverText, (screenWidth - gameOverWidth) / 2, 100);
+        
+        // Stats
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Arial", Font.PLAIN, 20));
+        
+        int ordersCompleted = (orderManager != null) ? orderManager.getOrderCount() : 0;
+        String statsText = "Orders Completed: " + ordersCompleted;
+        int statsWidth = g2.getFontMetrics().stringWidth(statsText);
+        g2.drawString(statsText, (screenWidth - statsWidth) / 2, 180);
+        
+        String timeText = "Time Used: " + formatTime(180 - gameTime);
+        int timeWidth = g2.getFontMetrics().stringWidth(timeText);
+        g2.drawString(timeText, (screenWidth - timeWidth) / 2, 220);
+        
+        // Restart instruction
+        g2.setColor(Color.YELLOW);
+        g2.setFont(new Font("Arial", Font.BOLD, 20));
+        String restartText = "Press ENTER to Return to Menu";
+        int restartWidth = g2.getFontMetrics().stringWidth(restartText);
+        g2.drawString(restartText, (screenWidth - restartWidth) / 2, 300);
+        
+        // Quit instruction
+        g2.setColor(new Color(150, 150, 150));
+        g2.setFont(new Font("Arial", Font.PLAIN, 14));
+        String quitText = "Press ESC to Quit";
+        int quitWidth = g2.getFontMetrics().stringWidth(quitText);
+        g2.drawString(quitText, (screenWidth - quitWidth) / 2, 330);
+    }
+
+    public void triggerGameOver() {
+        isGameRunning = false;
+        gameState = gameOverState;
     }
 }
