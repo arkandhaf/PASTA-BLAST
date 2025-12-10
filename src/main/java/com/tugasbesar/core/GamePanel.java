@@ -237,8 +237,8 @@ public class GamePanel extends JPanel implements Runnable {
         
         // Orders
         if (orderManager != null) {
-            g2.setColor(Color.LIME);
-            g2.drawString("Orders Completed: " + orderManager.getOrderCount(), 20, 85);
+            g2.setColor(new Color(0, 255, 0)); // Green
+            g2.drawString("Orders Active: " + orderManager.getActiveOrder().size(), 20, 85);
         }
         
         // Instructions (bottom)
@@ -288,8 +288,8 @@ public class GamePanel extends JPanel implements Runnable {
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("Arial", Font.PLAIN, 20));
         
-        int ordersCompleted = (orderManager != null) ? orderManager.getOrderCount() : 0;
-        String statsText = "Orders Completed: " + ordersCompleted;
+        int ordersActive = (orderManager != null) ? orderManager.getActiveOrder().size() : 0;
+        String statsText = "Orders Active: " + ordersActive;
         int statsWidth = g2.getFontMetrics().stringWidth(statsText);
         g2.drawString(statsText, (screenWidth - statsWidth) / 2, 180);
         
