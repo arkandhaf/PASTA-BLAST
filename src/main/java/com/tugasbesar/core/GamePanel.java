@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.stations.Station;
@@ -53,6 +54,7 @@ public class GamePanel extends JPanel implements Runnable {
     // --- MANAGERS ---
     public MapParser mapParser = new MapParser(this); 
     public OrderManager orderManager = OrderManager.getInstance();
+    public AssetManager assetManager = AssetManager.getInstance();
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -156,8 +158,19 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void drawTitleScreen(Graphics2D g2) {
-        // Background
-        g2.setColor(new Color(20, 20, 40));
+        // Try to load and draw background image
+        BufferedImage startImage = assetManager.loadStartScreen();
+        if (startImage != null) {
+            // Draw stretched background image
+            g2.drawImage(startImage, 0, 0, screenWidth, screenHeight, null);
+        } else {
+            // Fallback to colored background if image fails
+            g2.setColor(new Color(20, 20, 40));
+            g2.fillRect(0, 0, screenWidth, screenHeight);
+        }
+        
+        // Optional: Add semi-transparent overlay for better text readability
+        g2.setColor(new Color(0, 0, 0, 80));
         g2.fillRect(0, 0, screenWidth, screenHeight);
         
         // Title
@@ -273,8 +286,18 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void drawGameOverScreen(Graphics2D g2) {
-        // Background
-        g2.setColor(new Color(20, 10, 10));
+        // Try to load and draw background image
+        BufferedImage gameOverImage = assetManager.loadGameOverScreen();
+        if (gameOverImage != null) {
+            g2.drawImage(gameOverImage, 0, 0, screenWidth, screenHeight, null);
+        } else {
+            // Fallback to colored background if image fails
+            g2.setColor(new Color(20, 10, 10));
+            g2.fillRect(0, 0, screenWidth, screenHeight);
+        }
+        
+        // Add semi-transparent overlay for text readability
+        g2.setColor(new Color(0, 0, 0, 100));
         g2.fillRect(0, 0, screenWidth, screenHeight);
         
         // Game Over Title

@@ -2,11 +2,15 @@ package com.tugasbesar.models.actors;
 
 import com.tugasbesar.core.GamePanel;
 import com.tugasbesar.core.KeyHandler;
+import com.tugasbesar.core.AssetManager;
 import com.tugasbesar.models.abstracts.Entity;
 import com.tugasbesar.models.abstracts.Item; 
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Chef extends Entity {
 
@@ -15,19 +19,33 @@ public class Chef extends Entity {
     private String name;
     private Item heldItem; 
     private boolean isBusy; 
-    private Color chefColor; 
+    private Color chefColor;
+    
+    // Asset sprites
+    private Map<String, BufferedImage> standingSprites;
+    private Map<String, BufferedImage> walkingSprites;
+    private BufferedImage currentSprite;
+    private AssetManager assetManager; 
 
     public Chef(GamePanel gp, KeyHandler keyH, String name, int playerID) { 
         this.gp = gp;
         this.name = name;
         this.playerID = playerID;
+        this.assetManager = AssetManager.getInstance();
         
         // Hitbox (Area Tabrakan)
         this.solidArea = new Rectangle(8, 16, 32, 32); 
         this.solidAreaDefaultX = solidArea.x;
         this.solidAreaDefaultY = solidArea.y;
 
+        // Load sprite assets
+        loadSpriteAssets();
         setDefaultValues();
+    }
+
+    private void loadSpriteAssets() {
+        standingSprites = assetManager.loadChefStanding();
+        walkingSprites = new HashMap<>();
     }
 
     public void setDefaultValues() {
@@ -160,20 +178,24 @@ public class Chef extends Entity {
     // ------------------------------------------------------------------------
     @Override
     public void draw(Graphics2D g2) {
-        g2.setColor(chefColor);
-        g2.fillRect(x, y, gp.tileSize, gp.tileSize); 
+        // Get current sprite based on direction
+        BufferedImage sprite = standingSprites.get(direction);
         
-        // Gambar Mata
-        g2.setColor(Color.WHITE); 
-        if(direction.equals("up")) g2.fillRect(x + 10, y + 5, 28, 10);
-        if(direction.equals("down")) g2.fillRect(x + 10, y + 30, 28, 10);
-        if(direction.equals("left")) g2.fillRect(x + 5, y + 10, 10, 28);
-        if(direction.equals("right")) g2.fillRect(x + 30, y + 10, 10, 28);
+        if (sprite != null) {
+            // Draw sprite image
+            g2.drawImage(sprite, x, y, gp.tileSize, gp.tileSize, null);
+        } else {
+            // Fallback to colored rectangle if sprite not found
+            g2.setColor(chefColor);
+            g2.fillRect(x, y, gp.tileSize, gp.tileSize);
+        }
         
+        // Draw name label
         g2.setColor(Color.WHITE);
         g2.setFont(g2.getFont().deriveFont(12F));
-        g2.drawString(name, x + 12, y - 5); 
+        g2.drawString(name, x + 12, y - 5);
 
+        // Draw held item indicator
         if (heldItem != null) {
             g2.setColor(new Color(255, 165, 0)); 
             g2.fillOval(x + 12, y - 15, 24, 24); 
