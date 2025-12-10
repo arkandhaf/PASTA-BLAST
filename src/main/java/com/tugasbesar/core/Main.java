@@ -1,7 +1,7 @@
 package com.tugasbesar.core;
 
 import javax.swing.JFrame;
-import com.tugasbesar.core.GamePanel;
+// import com.tugasbesar.core.GamePanel; // Tidak perlu di-import kalau satu package, tapi dibiarkan juga gapapa
 
 public class Main {
     public static void main(String[] args) {
@@ -14,14 +14,15 @@ public class Main {
         GamePanel gamePanel = new GamePanel();
         window.add(gamePanel);
 
+        // --- [SETUP DULUAN] ---
+        // Kita load map SEBELUM window ditampilkan
+        // Biar pas window muncul, mapnya udah siap.
+        gamePanel.setupGame(); 
+        // ----------------------
+
         window.pack();
         window.setLocationRelativeTo(null);
         window.setVisible(true);
-
-        // --- [PENTING] LOAD OBJEK STATION DULU ---
-        // Kalau baris ini tidak ada, Kompor & Talenan tidak akan muncul!
-        gamePanel.setupGame(); 
-        // -----------------------------------------
 
         gamePanel.startGameThread();
     }

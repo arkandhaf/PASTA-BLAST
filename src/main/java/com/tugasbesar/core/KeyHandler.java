@@ -24,23 +24,34 @@ public class KeyHandler implements KeyListener {
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
         
-        // Cek Variable State (Sekarang udah aman karena ada di GamePanel)
+        // --- TITLE STATE (Menu Awal) ---
         if (gp.gameState == gp.titleState) {
             if (code == KeyEvent.VK_ENTER) {
-                gp.gameState = gp.playState; 
-                gp.startGameTimer(); 
+                gp.gameState = gp.playState; // Masuk ke game
+                // [FIX] Tidak perlu panggil startGameTimer() karena sudah jalan di GamePanel
             }
         }
+        
+        // --- PLAY STATE (Lagi Main) ---
         else if (gp.gameState == gp.playState) {
+            // Gerakan
             if (code == KeyEvent.VK_W) upPressed = true;
             if (code == KeyEvent.VK_S) downPressed = true;
             if (code == KeyEvent.VK_A) leftPressed = true;
             if (code == KeyEvent.VK_D) rightPressed = true;
+            
+            // Interaksi
             if (code == KeyEvent.VK_SPACE) interactPressed = true;
             if (code == KeyEvent.VK_SHIFT) dashPressed = true;
+            
+            // Ganti Pemain
             if (code == KeyEvent.VK_ENTER) turnSwapPressed = true;
+            
+            // Pause
             if (code == KeyEvent.VK_P) gp.gameState = gp.pauseState;
         }
+        
+        // --- PAUSE STATE (Lagi Pause) ---
         else if (gp.gameState == gp.pauseState) {
             if (code == KeyEvent.VK_P) gp.gameState = gp.playState;
         }
@@ -49,10 +60,12 @@ public class KeyHandler implements KeyListener {
     @Override
     public void keyReleased(KeyEvent e) {
         int code = e.getKeyCode();
+        
         if (code == KeyEvent.VK_W) upPressed = false;
         if (code == KeyEvent.VK_S) downPressed = false;
         if (code == KeyEvent.VK_A) leftPressed = false;
         if (code == KeyEvent.VK_D) rightPressed = false;
+        
         if (code == KeyEvent.VK_SPACE) interactPressed = false;
         if (code == KeyEvent.VK_SHIFT) dashPressed = false; 
         if (code == KeyEvent.VK_ENTER) turnSwapPressed = false; 

@@ -9,9 +9,7 @@ import java.awt.Graphics2D;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.stations.Station;
-
-// --- [UBAH] IMPORT MAP PARSER & ORDER MANAGER ---
-import com.tugasbesar.models.manager.MapParser; // Ganti TileManager jadi MapParser
+import com.tugasbesar.models.manager.MapParser; 
 import com.tugasbesar.models.manager.OrderManager; 
 
 public class GamePanel extends JPanel implements Runnable {
@@ -19,11 +17,12 @@ public class GamePanel extends JPanel implements Runnable {
     // --- Pengaturan Layar ---
     final int originalTileSize = 16;
     final int scale = 3;
-    public final int tileSize = originalTileSize * scale; // 48x48 pixel
+    public final int tileSize = originalTileSize * scale; // 48 pixel
     
-    // Ukuran Map (Sesuaikan dengan file .txt nanti)
-    public final int maxScreenCol = 20; 
-    public final int maxScreenRow = 15;
+    // [PENTING] Ukuran Layar Sesuai Map B (14x10)
+    public final int maxScreenCol = 14; 
+    public final int maxScreenRow = 10;
+    
     public final int screenWidth = tileSize * maxScreenCol; 
     public final int screenHeight = tileSize * maxScreenRow; 
 
@@ -31,7 +30,6 @@ public class GamePanel extends JPanel implements Runnable {
     int FPS = 60;
     Thread gameThread;
     
-    // State Game
     public int gameState;
     public final int titleState = 0;
     public final int playState = 1;
@@ -48,13 +46,11 @@ public class GamePanel extends JPanel implements Runnable {
     public Chef chef1;
     public Chef chef2;
     
-    // Wadah Station (Array besar biar muat 1 map)
-    public Station station[] = new Station[100]; 
+    // Wadah Station
+    public Station station[] = new Station[200]; 
 
-    // --- [UBAH] INISIALISASI MANAGER ---
-    // Ganti nama variabel dari tileM jadi mapParser biar jelas
+    // --- MANAGERS ---
     public MapParser mapParser = new MapParser(this); 
-    
     public OrderManager orderManager = OrderManager.getInstance();
 
     public GamePanel() {
@@ -64,42 +60,37 @@ public class GamePanel extends JPanel implements Runnable {
         this.addKeyListener(keyH);
         this.setFocusable(true);
         
-        // Inisialisasi Player
         chef1 = new Chef(this, keyH, "P1", 1);
         chef2 = new Chef(this, keyH, "P2", 2); 
         
-        // Posisi awal Chef
-        chef1.setDefaultValues(5, 5); 
-        chef2.setDefaultValues(6, 5);
+        // Posisi Awal (Diatur biar gak nyangkut)
+        chef1.setDefaultValues(2, 2); 
+        chef2.setDefaultValues(3, 2);
 
         gameState = playState; 
     }
 
     public void setupGame() {
-        // --- [PENTING] LOAD MAP DARI FILE ---
-        // Panggil MapParser untuk baca file dan isi array station[]
-        // Pastikan path filenya benar!
-        mapParser.loadMap("/maps/map01.txt"); 
+        // [FIX FINAL] CUKUP NAMA FILE SAJA.
+        // Jangan pakai "maps/...", karena MapParser sudah otomatis nambahin folder itu.
+        mapParser.loadMap("map-type-b.txt"); 
         
-        System.out.println("✅ Map & Station Loaded Successfully via MapParser!");
+        System.out.println("✅ GamePanel: Setup selesai!");
     }
 
     public void startGameThread() {
         gameThread = new Thread(this);
         gameThread.start();
-        startGameTimer();
-    }
-    
-    public void startGameTimer() {
-        Thread timerThread = new Thread(() -> {
+        
+        // Timer Thread
+        new Thread(() -> {
             while (isGameRunning && gameTime > 0) {
                 try {
                     Thread.sleep(1000); 
                     if (gameState == playState) gameTime--;
-                } catch (InterruptedException e) { e.printStackTrace(); }
+                } catch (Exception e) {}
             }
-        });
-        timerThread.start();
+        }).start();
     }
 
     @Override
@@ -123,14 +114,11 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void update() {
         if (gameState == playState && isGameRunning) {
-            
-            // Logic Ganti Pemain
             if (keyH.turnSwapPressed) {
                 activePlayerID = (activePlayerID == 1) ? 2 : 1;
                 keyH.turnSwapPressed = false;
             }
             
-            // Update Chef Aktif
             if (activePlayerID == 1) {
                 chef1.update(keyH); 
                 chef2.update(null); 
@@ -139,17 +127,11 @@ public class GamePanel extends JPanel implements Runnable {
                 chef2.update(keyH); 
             }
             
-            // Update Station (Logic masak, potong, dll)
             for (int i = 0; i < station.length; i++) {
-                if (station[i] != null) {
-                    station[i].update();
-                }
+                if (station[i] != null) station[i].update();
             }
             
-            // Update Order
-            if (orderManager != null) {
-                orderManager.update();
-            }
+            if (orderManager != null) orderManager.update();
         }
     }
 
@@ -161,36 +143,28 @@ public class GamePanel extends JPanel implements Runnable {
             g2.setColor(Color.WHITE);
             g2.drawString("PRESS ENTER TO START", 100, 100);
         } else {
-            // --- URUTAN GAMBAR (LAYERING) ---
-            
-            // 1. BACKGROUND (Lantai) - Digambar oleh MapParser
-            if (mapParser != null) {
-                mapParser.draw(g2); 
-            }
+            // 1. Gambar Lantai (Background)
+            if (mapParser != null) mapParser.draw(g2); 
 
-            // 2. STATIONS (Objek di atas lantai)
+            // 2. Gambar Stations
             for (int i = 0; i < station.length; i++) {
-                if (station[i] != null) {
-                    station[i].draw(g2);
-                }
+                if (station[i] != null) station[i].draw(g2);
             }
 
-            // 3. PLAYERS (Chef)
+            // 3. Gambar Chefs
             chef1.draw(g2);
             chef2.draw(g2);
             
-            // 4. UI / HUD
+            // 4. UI
             g2.setColor(Color.WHITE);
             g2.setFont(g2.getFont().deriveFont(30F)); 
             g2.drawString("Time: " + gameTime, 20, 40); 
             
-            // Indikator "YOU"
             Chef activeChef = (activePlayerID == 1) ? chef1 : chef2;
             g2.setColor(Color.YELLOW);
             g2.setFont(new Font("Arial", Font.BOLD, 12)); 
             g2.drawString("▼ YOU", activeChef.x + 8, activeChef.y - 10);
             
-            // Pause Overlay
             if(gameState == pauseState) {
                 g2.setColor(new Color(0,0,0,150));
                 g2.fillRect(0, 0, screenWidth, screenHeight);
