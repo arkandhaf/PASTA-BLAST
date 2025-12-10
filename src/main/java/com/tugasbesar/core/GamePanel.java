@@ -228,13 +228,6 @@ public class GamePanel extends JPanel implements Runnable {
                 int stationRow = station[i].getPosY();
                 String stationType = station[i].getClass().getSimpleName();
                 stationRenderer.drawStation(g2, stationCol, stationRow, stationType);
-                
-                // Draw station name label
-                g2.setColor(Color.WHITE);
-                g2.setFont(new Font("Arial", Font.BOLD, 10));
-                int x = stationCol * tileSize;
-                int y = stationRow * tileSize;
-                g2.drawString(station[i].getName(), x + 5, y + tileSize - 5);
             }
         }
 

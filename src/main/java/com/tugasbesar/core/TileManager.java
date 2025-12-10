@@ -45,14 +45,21 @@ public class TileManager {
         } else {
             // Fallback to colored rectangle
             switch(tileType) {
-                case '0': // Floor
+                case '.': // Floor
                     g2.setColor(new java.awt.Color(200, 180, 160));
                     break;
-                case '1': // Wall
+                case '0': // Floor (legacy)
+                    g2.setColor(new java.awt.Color(200, 180, 160));
+                    break;
+                case '1': // Wall (legacy)
+                    g2.setColor(new java.awt.Color(100, 100, 100));
+                    break;
+                case 'X': // Wall
                     g2.setColor(new java.awt.Color(100, 100, 100));
                     break;
                 default:
-                    g2.setColor(new java.awt.Color(150, 150, 150));
+                    // Station tiles - use floor
+                    g2.setColor(new java.awt.Color(200, 180, 160));
             }
             g2.fillRect(x, y, gp.tileSize, gp.tileSize);
         }
@@ -63,12 +70,17 @@ public class TileManager {
      */
     private BufferedImage getTileImage(char tileType) {
         switch(tileType) {
-            case '0': // Floor
+            case '.': // Floor
                 return tileSprites.get("floor");
-            case '1': // Wall
+            case '0': // Floor (legacy)
+                return tileSprites.get("floor");
+            case '1': // Wall (legacy)
+                return tileSprites.get("wall");
+            case 'X': // Wall
                 return tileSprites.get("wall");
             default:
-                return null;
+                // All station positions should show floor tiles
+                return tileSprites.get("floor");
         }
     }
     
