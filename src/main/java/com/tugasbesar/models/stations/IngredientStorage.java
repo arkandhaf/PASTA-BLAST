@@ -5,6 +5,7 @@ import com.tugasbesar.models.abstracts.Item;
 import com.tugasbesar.models.interfaces.Processable; 
 import com.tugasbesar.models.item.IngredientFactory;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
+import com.tugasbesar.models.item.kitchen_utensil.BaseCookingDevice; 
 
 public class IngredientStorage extends Station {
     
@@ -21,66 +22,74 @@ public class IngredientStorage extends Station {
         Item hand = chef.getHeldItem();
         Item tableItem = itemOnStation;
         
-        // --- 1. INTERAKSI PLATING (ASSEMBLY) ---
-        
-        // A. Piring di tangan Chef dan stasiun berisi bahan sumber: GANTI LOGIKA JADI SWAP/PLACE PLATE
-        if (chef.hasItem() && hand instanceof Plate && tableItem != null && tableItem.getName().equalsIgnoreCase(ingredientName)) {
-            
-            // Chef menaruh Piring, lalu mengambil bahan sumber ke tangannya. (Swap Implisit)
-            Item itemToPlace = chef.getHeldItem();
-            chef.setHeldItem(takeItem()); // Ambil Bahan Sumber
-            placeItem(itemToPlace); // Taruh Plate
-            
-            // Stasiun diisi kembali dengan bahan baru
-            itemOnStation = createNewIngredient(); 
-            
-            System.out.println("🔄 [Storage: Place Plate] Piring ditaruh di meja. Chef sekarang memegang " + chef.getHeldItem().getName() + ".");
-            return;
-        }
+        // --- 1. INTERAKSI KHUSUS PLATING/ASSEMBLY (Prioritas Tertinggi) ---
 
-        // B. Piring di meja: Masukkan bahan di tangan ke piring
-        if (tableItem instanceof Plate && chef.hasItem() && hand instanceof Processable) { 
-            Plate p = (Plate) tableItem;
-            Processable ing = (Processable) hand;
+        // A. PLATING KE STASIUN (Utensil di tangan -> Piring di Meja)
+        if (tableItem instanceof Plate plateOnTable && chef.hasItem() && hand instanceof BaseCookingDevice utensilInHand) { 
             
-            // Validasi tambahan: Piring di Stasiun hanya boleh menerima bahan yang sudah dimasak/diproses (COOKED/CUT)
-            // Namun, karena ini IngredientStorage, kita asumsikan piring di sini hanya untuk Assembly RAW/CUT.
-            // Jika Anda ingin hanya COOKED, logika di Plate.canAccept() harus memvalidasinya.
-            
-            if (p.canAccept(ing)) { 
-                p.addIngredient(ing);
-                chef.setHeldItem(null); 
+            if (!utensilInHand.isEmpty() && !plateOnTable.isDirty()) {
+                Processable ingredient = utensilInHand.getContents().get(0);
                 
-                System.out.println("✅ [Storage: Assembly] Memasukkan " + ing.getName() + " ke dalam Piring di meja.");
-                return;
-            } else {
-                System.out.println("⚠️ [Storage] Tidak bisa dimasukkan. Piring kotor atau bahan tidak siap/cocok.");
-                return;
+                if (plateOnTable.canAccept(ingredient)) {
+                    Processable ingredientToPlate = (Processable) utensilInHand.takeItem(); 
+                    plateOnTable.addIngredient(ingredientToPlate); 
+                    
+                    System.out.println("✅ [Storage: Plating (Utensil->Plate)] " + ingredientToPlate.getName() + " pindah dari Utensil ke Piring di meja.");
+                    return;
+                } 
             }
         }
         
-        // --- 2. INTERAKSI AMBIL BAHAN SUMBER (Infinite Source) ---
+        // B. PLATING DARI STASIUN (Bahan di Meja -> Piring di Tangan)
+        if (tableItem != null && tableItem.getName().equalsIgnoreCase(ingredientName) && chef.hasItem() && hand instanceof Plate plateInHand) {
+            
+            Processable ingredientOnTable = (Processable) tableItem; 
+            
+            if (!plateInHand.isDirty() && plateInHand.canAccept(ingredientOnTable)) {
+                
+                Item takenItem = takeItem(); // Ambil bahan sumber
+                plateInHand.addIngredient((Processable) takenItem); // Plating ke Piring di tangan
+                itemOnStation = createNewIngredient(); // Isi kembali stasiun
+                
+                System.out.println("✅ [Storage: Plating (Meja->Plate)] " + ingredientOnTable.getName() + " pindah ke piring di tangan.");
+                return;
+            } 
+        }
+
+        // --- 2. AMBIL ITEM TERTINGGAL/NON-SUMBER (Sesuai Spek Poin 2) ---
+
+        // Jika tangan kosong DAN item di meja BUKAN bahan sumber
+        // (Ini berarti ada Plate atau item lain yang tertinggal/ditaruh di atas Storage)
+        if (!chef.hasItem() && tableItem != null && !tableItem.getName().equalsIgnoreCase(ingredientName)) {
+             chef.setHeldItem(takeItem()); // Ambil item yang tertinggal itu
+             System.out.println("🥄 [Storage] " + chef.getName() + " mengambil item tertinggal: " + chef.getHeldItem().getName());
+             return;
+        }
+
+
+        // --- 3. AMBIL BAHAN SUMBER (Infinite Source - Sesuai Spek Poin 1) ---
 
         // Chef tangan kosong DAN item di meja adalah bahan sumber
         if (!chef.hasItem() && tableItem != null && tableItem.getName().equalsIgnoreCase(ingredientName)) {
             
-            // Ambil bahan sumber (selalu ke tangan Chef)
-            chef.setHeldItem(takeItem()); 
-            
-            // Isi kembali stasiun dengan item baru (Infinite source logic)
-            itemOnStation = createNewIngredient(); 
+            chef.setHeldItem(takeItem()); // Ambil bahan sumber
+            itemOnStation = createNewIngredient(); // Isi kembali stasiun (Infinite source logic)
             
             System.out.println("🥄 [Storage] " + chef.getName() + " mengambil " + chef.getHeldItem().getName() + " & Stasiun terisi kembali.");
             return;
         }
-
-        // --- 3. FALLBACK (Item/Plate di Meja, Swap, atau Taruh) ---
+        
+        // --- 4. FALLBACK (Item di tangan dan Meja Kosong/Ada Item Lain) ---
         
         // Ini akan menangani:
         // - SWAP (Jika Chef bawa item dan ada Plate/item lain tertinggal di meja)
-        // - TAKE (Jika Chef tangan kosong dan ada Plate/item tertinggal di meja)
         // - PLACE (Jika Chef bawa item dan meja kosong)
         defaultInteract(chef);
+    }
+
+    @Override
+    public void update() {
+        // IngredientStorage tidak memiliki proses yang berjalan otomatis
     }
 
     // Helper: membuat ingredient baru (tanpa pesan log)
