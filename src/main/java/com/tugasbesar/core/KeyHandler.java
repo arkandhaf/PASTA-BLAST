@@ -5,13 +5,17 @@ import java.awt.event.KeyListener;
 
 public class KeyHandler implements KeyListener {
 
-    // Hanya KONTROL DASAR (Satu Set Input: WASD, SPACE, SHIFT)
+    GamePanel gp; // Variabel penampung
+
     public boolean upPressed, downPressed, leftPressed, rightPressed;
     public boolean interactPressed;
     public boolean dashPressed;
-    
-    // Tombol untuk MENGGANTI GILIRAN (TURN)
     public boolean turnSwapPressed = false; 
+
+    // Constructor menerima GamePanel
+    public KeyHandler(GamePanel gp) {
+        this.gp = gp;
+    }
 
     @Override
     public void keyTyped(KeyEvent e) {}
@@ -20,35 +24,37 @@ public class KeyHandler implements KeyListener {
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
         
-        // --- KONTROL GERAKAN (WASD) ---
-        if (code == KeyEvent.VK_W) upPressed = true;
-        if (code == KeyEvent.VK_S) downPressed = true;
-        if (code == KeyEvent.VK_A) leftPressed = true;
-        if (code == KeyEvent.VK_D) rightPressed = true;
-        
-        // --- KONTROL AKSI ---
-        if (code == KeyEvent.VK_SPACE) interactPressed = true;
-        if (code == KeyEvent.VK_SHIFT) dashPressed = true;
-        
-        // --- KONTROL GANTI GILIRAN (Misalnya tombol ENTER) ---
-        if (code == KeyEvent.VK_ENTER) turnSwapPressed = true;
+        // Cek Variable State (Sekarang udah aman karena ada di GamePanel)
+        if (gp.gameState == gp.titleState) {
+            if (code == KeyEvent.VK_ENTER) {
+                gp.gameState = gp.playState; 
+                gp.startGameTimer(); 
+            }
+        }
+        else if (gp.gameState == gp.playState) {
+            if (code == KeyEvent.VK_W) upPressed = true;
+            if (code == KeyEvent.VK_S) downPressed = true;
+            if (code == KeyEvent.VK_A) leftPressed = true;
+            if (code == KeyEvent.VK_D) rightPressed = true;
+            if (code == KeyEvent.VK_SPACE) interactPressed = true;
+            if (code == KeyEvent.VK_SHIFT) dashPressed = true;
+            if (code == KeyEvent.VK_ENTER) turnSwapPressed = true;
+            if (code == KeyEvent.VK_P) gp.gameState = gp.pauseState;
+        }
+        else if (gp.gameState == gp.pauseState) {
+            if (code == KeyEvent.VK_P) gp.gameState = gp.playState;
+        }
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
         int code = e.getKeyCode();
-        
-        // --- KONTROL GERAKAN ---
         if (code == KeyEvent.VK_W) upPressed = false;
         if (code == KeyEvent.VK_S) downPressed = false;
         if (code == KeyEvent.VK_A) leftPressed = false;
         if (code == KeyEvent.VK_D) rightPressed = false;
-        
-        // --- KONTROL AKSI ---
         if (code == KeyEvent.VK_SPACE) interactPressed = false;
         if (code == KeyEvent.VK_SHIFT) dashPressed = false; 
-        
-        // --- KONTROL GANTI GILIRAN (Penting: harus dimatikan di sini) ---
         if (code == KeyEvent.VK_ENTER) turnSwapPressed = false; 
     }
 }

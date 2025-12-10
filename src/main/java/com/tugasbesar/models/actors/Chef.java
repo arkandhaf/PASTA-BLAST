@@ -10,128 +10,182 @@ import java.awt.Rectangle;
 
 public class Chef extends Entity {
 
-    // --- VIEW/CONTROLLER VARIABELS ---
     GamePanel gp;
-    // Hapus KeyHandler keyH; dari field, karena sekarang KeyHandler dipass ke update()
     private int playerID; 
-
-    // --- MODEL/LOGIC VARIABELS ---
     private String name;
     private Item heldItem; 
-    private String orientation; 
     private boolean isBusy; 
-
     private Color chefColor; 
 
-    // Constructor BARU (tidak menyimpan keyH sebagai field, tapi kita tetap butuh di sini)
     public Chef(GamePanel gp, KeyHandler keyH, String name, int playerID) { 
         this.gp = gp;
         this.name = name;
         this.playerID = playerID;
+        
+        // Hitbox (Area Tabrakan)
+        this.solidArea = new Rectangle(8, 16, 32, 32); 
+        this.solidAreaDefaultX = solidArea.x;
+        this.solidAreaDefaultY = solidArea.y;
+
         setDefaultValues();
     }
 
     public void setDefaultValues() {
         speed = 4;
+        direction = "down"; 
         
-        // Penempatan awal berdasarkan ID pemain
         if (playerID == 1) {
-            x = 100;
-            y = 100;
-            chefColor = Color.RED;
-        } else { // playerID == 2
-            x = 500;
-            y = 100;
-            chefColor = Color.BLUE;
+            x = 100; y = 100; chefColor = Color.RED;
+        } else { 
+            x = 500; y = 100; chefColor = Color.BLUE;
         }
-
-        this.solidArea = new Rectangle(8, 16, 32, 32); 
         
         this.heldItem = null; 
-        this.orientation = "down"; 
         this.isBusy = false;
     }
 
-    // ------------------------------------------------------------------------
-    // --- UPDATE METHOD (Hanya bergerak jika menerima KeyHandler) ---
-    // ------------------------------------------------------------------------
-    
-    // NOTE: Override public void update() yang lama harus diganti dengan ini
-    public void update(KeyHandler inputKeyH) {
-        
-        // Cek: Jika tidak ada KeyHandler yang dipass (bukan giliran), keluar dari method.
-        if (inputKeyH == null) {
-            // Kita bisa atur speed menjadi 0 atau membiarkan Chef diam
-            return; 
-        }
-
-        // --- CHEF AKTIF: LOGIC MOVEMENT DAN AKSI ---
-        speed = 4;
-        
-        if (inputKeyH.dashPressed) { 
-            speed = 8; 
-        } 
-        
-        // 1. GERAKAN
-        if (inputKeyH.upPressed || inputKeyH.downPressed || inputKeyH.leftPressed || inputKeyH.rightPressed) {
-            if (inputKeyH.upPressed) { orientation = "up"; y -= speed; }
-            else if (inputKeyH.downPressed) { orientation = "down"; y += speed; }
-            else if (inputKeyH.leftPressed) { orientation = "left"; x -= speed; }
-            else if (inputKeyH.rightPressed) { orientation = "right"; x += speed; }
-        }
-        
-        // 2. INTERAKSI
-        if (inputKeyH.interactPressed) { 
-            // interact(); // Panggil logic interaksi
-            inputKeyH.interactPressed = false; // Matikan tombol interaksi
-        }
-        
-        // 3. COLLISION CHECK (gunakan gp.cChecker karena gp adalah field)
-        gp.cChecker.checkWindowBoundary(this); 
+    public void setDefaultValues(int startCol, int startRow) {
+        setDefaultValues();
+        this.x = startCol * gp.tileSize;
+        this.y = startRow * gp.tileSize;
     }
 
-    // Metode update() kosong untuk kompatibilitas jika Entity/Runnable membutuhkannya
+    // ------------------------------------------------------------------------
+    // --- UPDATE LOGIC (FIXED: DASH ADDED) ---
+    // ------------------------------------------------------------------------
+    public void update(KeyHandler inputKeyH) {
+        
+        if (inputKeyH == null) return; 
+
+        // --- 1. SET KECEPATAN (DASH LOGIC) ---
+        // Default jalan santai
+        speed = 4; 
+        
+        // Kalau tombol Shift ditekan -> Lari!
+        if (inputKeyH.dashPressed == true) {
+            speed = 8;
+        }
+
+        // --- 2. DETEKSI NIAT GERAK (Set Arah) ---
+        boolean isMoving = false;
+
+        if (inputKeyH.upPressed) {
+            direction = "up";
+            isMoving = true;
+        } else if (inputKeyH.downPressed) {
+            direction = "down";
+            isMoving = true;
+        } else if (inputKeyH.leftPressed) {
+            direction = "left";
+            isMoving = true;
+        } else if (inputKeyH.rightPressed) {
+            direction = "right";
+            isMoving = true;
+        }
+
+        // --- 3. CEK TABRAKAN (SEBELUM GERAK) ---
+        collisionOn = false;
+        gp.cChecker.checkObject(this, true); // Cek nabrak Station?
+        gp.cChecker.checkWindowBoundary(this); // Cek tembok layar?
+
+        // --- 4. EKSEKUSI GERAK ---
+        // Hanya gerak kalau tombol ditekan DAN tidak nabrak tembok
+        if (isMoving == true && collisionOn == false) {
+            switch (direction) {
+                case "up":    y -= speed; break;
+                case "down":  y += speed; break;
+                case "left":  x -= speed; break;
+                case "right": x += speed; break;
+            }
+        }
+        
+        // --- 5. INTERAKSI ---
+        if (inputKeyH.interactPressed) { 
+            interact(); 
+            inputKeyH.interactPressed = false; // Reset tombol
+        }
+    }
+
     @Override
-    public void update() {
-        // Ini adalah metode kosong yang dipanggil jika update(KeyHandler) tidak dipanggil.
+    public void update() {}
+
+    // ------------------------------------------------------------------------
+    // --- INTERACTION LOGIC ---
+    // ------------------------------------------------------------------------
+    public void interact() {
+        
+        int centerX = this.x + gp.tileSize / 2;
+        int centerY = this.y + gp.tileSize / 2;
+
+        // Sensor reach (Jangkauan)
+        int reach = gp.tileSize / 2 + 6; 
+        
+        int sensorX = centerX;
+        int sensorY = centerY;
+
+        switch(direction) {
+            case "up":    sensorY -= reach; break;
+            case "down":  sensorY += reach; break;
+            case "left":  sensorX -= reach; break;
+            case "right": sensorX += reach; break;
+        }
+
+        int targetCol = sensorX / gp.tileSize;
+        int targetRow = sensorY / gp.tileSize;
+
+        boolean hitStation = false;
+
+        for(int i = 0; i < gp.station.length; i++) {
+            if(gp.station[i] != null) {
+                int stationCol = gp.station[i].getPosX(); 
+                int stationRow = gp.station[i].getPosY();
+
+                if(stationCol == targetCol && stationRow == targetRow) {
+                    System.out.println("✅ P" + playerID + " INTERAKSI SUKSES dengan " + gp.station[i].getName());
+                    gp.station[i].interact(this);
+                    hitStation = true;
+                    break; 
+                }
+            }
+        }
+        
+        if (!hitStation) {
+            // Uncomment kalau mau debug failure
+             System.out.println("❌ Gagal: Tidak ada apa-apa di depan");
+        }
     }
 
     // ------------------------------------------------------------------------
     // --- DRAW METHOD ---
-    // ... (tetap sama) ...
-    
+    // ------------------------------------------------------------------------
     @Override
     public void draw(Graphics2D g2) {
         g2.setColor(chefColor);
         g2.fillRect(x, y, gp.tileSize, gp.tileSize); 
         
+        // Gambar Mata
+        g2.setColor(Color.WHITE); 
+        if(direction.equals("up")) g2.fillRect(x + 10, y + 5, 28, 10);
+        if(direction.equals("down")) g2.fillRect(x + 10, y + 30, 28, 10);
+        if(direction.equals("left")) g2.fillRect(x + 5, y + 10, 10, 28);
+        if(direction.equals("right")) g2.fillRect(x + 30, y + 10, 10, 28);
+        
         g2.setColor(Color.WHITE);
-        g2.drawString(name, x, y - 5); 
-
-        g2.setColor(Color.BLACK);
-        switch(orientation) {
-             case "up": g2.fillRect(x + 20, y + 5, 8, 8); break;
-             case "down": g2.fillRect(x + 20, y + 35, 8, 8); break;
-             case "left": g2.fillRect(x + 5, y + 20, 8, 8); break;
-             case "right": g2.fillRect(x + 35, y + 20, 8, 8); break;
-        }
+        g2.setFont(g2.getFont().deriveFont(12F));
+        g2.drawString(name, x + 12, y - 5); 
 
         if (heldItem != null) {
             g2.setColor(new Color(255, 165, 0)); 
-            g2.fillOval(x + 12, y - 10, 24, 24); 
+            g2.fillOval(x + 12, y - 15, 24, 24); 
         }
     }
 
-    // ------------------------------------------------------------------------
-    // --- LOGIC GETTERS/SETTERS ---
-    // ------------------------------------------------------------------------
-    
+    // Getters & Setters
     public String getName() { return name; }
     public Item getHeldItem() { return heldItem; }
     public void setHeldItem(Item item) { this.heldItem = item; }
     public boolean hasItem() { return heldItem != null; } 
-
-    public String getOrientation() { return orientation; }
+    public String getDirection() { return direction; }
     public boolean isBusy() { return isBusy; }
     public void setBusy(boolean busy) { this.isBusy = busy; }
     public int getPlayerID() { return playerID; }

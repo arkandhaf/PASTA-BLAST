@@ -3,9 +3,15 @@ package com.tugasbesar.core;
 import javax.swing.JPanel;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font; // [BARU] Import Font buat ngerapihin tulisan YOU
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import com.tugasbesar.models.actors.Chef;
+
+// Import Station punya Depa
+import com.tugasbesar.models.stations.Station;
+import com.tugasbesar.models.stations.CookingStation;
+import com.tugasbesar.models.stations.CuttingStation;
 
 public class GamePanel extends JPanel implements Runnable {
 
@@ -15,26 +21,32 @@ public class GamePanel extends JPanel implements Runnable {
     public final int tileSize = originalTileSize * scale; // 48x48 pixel
     public final int maxScreenCol = 16;
     public final int maxScreenRow = 12;
-    public final int screenWidth = tileSize * maxScreenCol; // 768 pixel
-    public final int screenHeight = tileSize * maxScreenRow; // 576 pixel
+    public final int screenWidth = tileSize * maxScreenCol; 
+    public final int screenHeight = tileSize * maxScreenRow; 
 
     // --- System Utama ---
     int FPS = 60;
     Thread gameThread;
-    KeyHandler keyH = new KeyHandler();
+    
+    // State Game
+    public int gameState;
+    public final int titleState = 0;
+    public final int playState = 1;
+    public final int pauseState = 2;
 
-    // --- SYSTEM V2.0 ---
-    public CollisionChecker cChecker = new CollisionChecker(this); // Polisi Tabrakan
-    public int gameTime = 180; // Waktu 3 Menit (180 detik)
+    public KeyHandler keyH = new KeyHandler(this);
+    public CollisionChecker cChecker = new CollisionChecker(this);
+    
+    public int gameTime = 180;
     public boolean isGameRunning = true;
     
-    // --- VARIABEL BARU UNTUK GILIRAN (TURN) ---
-    // Chef yang saat ini BISA bergerak. Nilai: 1 atau 2. Default: P1.
+    // --- MULTIPLAYER ---
     public int activePlayerID = 1; 
-
-    // --- ENTITY (Mendukung 2 Pemain) ---
-    public Chef chef1; // Chef Player 1
-    public Chef chef2; // Chef Player 2
+    public Chef chef1;
+    public Chef chef2;
+    
+    // Wadah Station
+    public Station station[] = new Station[20]; 
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -43,32 +55,47 @@ public class GamePanel extends JPanel implements Runnable {
         this.addKeyListener(keyH);
         this.setFocusable(true);
         
-        // INISIALISASI DUA CHEF BARU dengan nama dan ID
+        // Inisialisasi Player
         chef1 = new Chef(this, keyH, "P1", 1);
         chef2 = new Chef(this, keyH, "P2", 2); 
+        
+        // Posisi awal Chef (Manual call method baru di Chef)
+        chef1.setDefaultValues(5, 5); 
+        chef2.setDefaultValues(10, 5);
+
+        gameState = playState; 
+    }
+
+    public void setupGame() {
+        try {
+            // Setup Manual (Hardcode)
+            // Kompor di (6,6)
+            station[0] = new CookingStation(6, 6); 
+            
+            // Talenan di (9,6) (Uncomment kalau file CuttingStation sudah ada)
+            // station[1] = new CuttingStation(9, 6); 
+            
+            System.out.println("✅ Setup Manual Berhasil! Station siap.");
+            
+        } catch (Exception e) {
+            System.out.println("⚠️ Error Setup Station! Cek file CookingStation.");
+            e.printStackTrace();
+        }
     }
 
     public void startGameThread() {
         gameThread = new Thread(this);
-        gameThread.start(); // Jalankan Game Loop
-        
-        startGameTimer(); // Jalankan Waktu Mundur
+        gameThread.start();
+        startGameTimer();
     }
     
-    // --- THREAD KHUSUS WAKTU ---
     public void startGameTimer() {
         Thread timerThread = new Thread(() -> {
             while (isGameRunning && gameTime > 0) {
                 try {
-                    Thread.sleep(1000); // Tunggu 1 detik
-                    gameTime--;
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (gameTime <= 0) {
-                System.out.println("⏳ WAKTU HABIS! GAME OVER");
-                isGameRunning = false;
+                    Thread.sleep(1000); 
+                    if (gameState == playState) gameTime--;
+                } catch (InterruptedException e) { e.printStackTrace(); }
             }
         });
         timerThread.start();
@@ -85,7 +112,6 @@ public class GamePanel extends JPanel implements Runnable {
             currentTime = System.nanoTime();
             delta += (currentTime - lastTime) / drawInterval;
             lastTime = currentTime;
-
             if (delta >= 1) {
                 update();
                 repaint();
@@ -95,31 +121,29 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void update() {
-        if (isGameRunning) {
+        if (gameState == playState && isGameRunning) {
             
-            // --- LOGIC GANTI GILIRAN (TURN SWAP) ---
+            // Logic Ganti Pemain
             if (keyH.turnSwapPressed) {
-                if (activePlayerID == 1) {
-                    activePlayerID = 2; // Ganti ke P2
-                    System.out.println("🔄 GILIRAN: Chef P2 Aktif");
-                } else {
-                    activePlayerID = 1; // Ganti ke P1
-                    System.out.println("🔄 GILIRAN: Chef P1 Aktif");
-                }
-                keyH.turnSwapPressed = false; // Matikan tombol agar tidak spamming
+                activePlayerID = (activePlayerID == 1) ? 2 : 1;
+                keyH.turnSwapPressed = false;
             }
             
-            // --- HANYA UPDATE CHEF YANG AKTIF ---
-            // Kita pass KeyHandler HANYA kepada Chef yang aktif
+            // Update Chef Aktif
             if (activePlayerID == 1) {
                 chef1.update(keyH); 
-                chef2.update(null); // P2 TIDAK menerima KeyHandler, sehingga tidak bergerak
-            } else { // activePlayerID == 2
-                chef1.update(null);  // P1 TIDAK menerima KeyHandler
+                chef2.update(null); 
+            } else {
+                chef1.update(null); 
                 chef2.update(keyH); 
             }
             
-            // --- TODO: Lakukan update untuk semua Station di sini jika ada ---
+            // Update Station
+            for (int i = 0; i < station.length; i++) {
+                if (station[i] != null) {
+                    station[i].update();
+                }
+            }
         }
     }
 
@@ -127,19 +151,46 @@ public class GamePanel extends JPanel implements Runnable {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
 
-        // --- Gambar kedua Chef ---
-        chef1.draw(g2);
-        chef2.draw(g2);
-        
-        // --- HUD (Tampilan Waktu & Giliran) ---
-        g2.setColor(Color.WHITE);
-        g2.setFont(g2.getFont().deriveFont(30F)); 
-        g2.drawString("Time: " + gameTime, 20, 40); 
-        
-        // Tampilkan giliran
-        g2.setColor(activePlayerID == 1 ? Color.RED : Color.BLUE);
-        g2.drawString("Turn: P" + activePlayerID, screenWidth - 150, 40);
+        if (gameState == titleState) {
+            g2.setColor(Color.WHITE);
+            g2.drawString("PRESS ENTER TO START", 100, 100);
+        } else {
+            // 1. Gambar Station DULUAN (Layer Bawah)
+            for (int i = 0; i < station.length; i++) {
+                if (station[i] != null) {
+                    station[i].draw(g2);
+                }
+            }
 
+            // 2. Gambar Chef (Layer Atas)
+            chef1.draw(g2);
+            chef2.draw(g2);
+            
+            // 3. UI Status
+            g2.setColor(Color.WHITE);
+            g2.setFont(g2.getFont().deriveFont(30F)); 
+            g2.drawString("Time: " + gameTime, 20, 40); 
+            
+            // --- [UPDATE] INDIKATOR GILIRAN YANG RAPI ---
+            Chef activeChef = (activePlayerID == 1) ? chef1 : chef2;
+            
+            g2.setColor(Color.YELLOW);
+            // Pake Font Arial Bold ukuran 12 (Kecil Rapi)
+            g2.setFont(new Font("Arial", Font.BOLD, 12)); 
+            
+            // Posisi pas di tengah atas kepala
+            g2.drawString("▼ YOU", activeChef.x + 8, activeChef.y - 5);
+            // ---------------------------------------------
+            
+            // Pause Overlay
+            if(gameState == pauseState) {
+                g2.setColor(new Color(0,0,0,150));
+                g2.fillRect(0, 0, screenWidth, screenHeight);
+                g2.setColor(Color.WHITE);
+                g2.setFont(g2.getFont().deriveFont(50F));
+                g2.drawString("PAUSED", screenWidth/2 - 100, screenHeight/2);
+            }
+        }
         g2.dispose();
     }
 }
