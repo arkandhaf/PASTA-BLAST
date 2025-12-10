@@ -55,6 +55,7 @@ public class GamePanel extends JPanel implements Runnable {
     public MapParser mapParser = new MapParser(this); 
     public OrderManager orderManager = OrderManager.getInstance();
     public AssetManager assetManager = AssetManager.getInstance();
+    public StationRenderer stationRenderer;
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -63,6 +64,9 @@ public class GamePanel extends JPanel implements Runnable {
         this.addKeyListener(keyH);
         this.addMouseListener(new MouseHandler(this));
         this.setFocusable(true);
+        
+        // Initialize station renderer
+        this.stationRenderer = new StationRenderer(this);
         
         chef1 = new Chef(this, keyH, "P1", 1);
         chef2 = new Chef(this, keyH, "P2", 2); 
@@ -216,9 +220,22 @@ public class GamePanel extends JPanel implements Runnable {
         // 1. Draw Floor (Background)
         if (mapParser != null) mapParser.draw(g2);
 
-        // 2. Draw Stations
+        // 2. Draw Stations with sprites
         for (int i = 0; i < station.length; i++) {
-            if (station[i] != null) station[i].draw(g2);
+            if (station[i] != null) {
+                // Draw station sprite
+                int stationCol = station[i].getPosX();
+                int stationRow = station[i].getPosY();
+                String stationType = station[i].getClass().getSimpleName();
+                stationRenderer.drawStation(g2, stationCol, stationRow, stationType);
+                
+                // Draw station name label
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Arial", Font.BOLD, 10));
+                int x = stationCol * tileSize;
+                int y = stationRow * tileSize;
+                g2.drawString(station[i].getName(), x + 5, y + tileSize - 5);
+            }
         }
 
         // 3. Draw Chefs

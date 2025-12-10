@@ -92,10 +92,72 @@ public class AssetManager {
     }
     
     /**
+     * Load all tile sprites
+     */
+    public Map<String, BufferedImage> loadAllTiles() {
+        Map<String, BufferedImage> tiles = new HashMap<>();
+        tiles.put("floor", loadImage("tiles/floor.png"));
+        tiles.put("wall", loadImage("tiles/wall.png"));
+        return tiles;
+    }
+    
+    /**
      * Load UI sprites
      */
     public BufferedImage loadUIImage(String imageName) {
         return loadImage("ui/" + imageName + ".png");
+    }
+    
+    /**
+     * Load station sprite by type
+     */
+    public BufferedImage loadStation(String stationType) {
+        String filename = null;
+        switch(stationType.toLowerCase()) {
+            case "assembly":
+                filename = "a_assembly_station.png";
+                break;
+            case "cutting":
+                filename = "c_cutting_station.png";
+                break;
+            case "cooking":
+                filename = "r_cooking_station.png";
+                break;
+            case "ingredient":
+                filename = "i_ingredient_storage.png";
+                break;
+            case "plate":
+                filename = "p_plate_storage.png";
+                break;
+            case "serving":
+                filename = "s_serving_counter.png";
+                break;
+            case "trash":
+                filename = "t_trash_station.png";
+                break;
+            case "washing":
+                filename = "w_washing_station.png";
+                break;
+            default:
+                return null;
+        }
+        return loadImage("stations/" + filename);
+    }
+    
+    /**
+     * Load all station sprites
+     */
+    public Map<String, BufferedImage> loadAllStations() {
+        Map<String, BufferedImage> stations = new HashMap<>();
+        stations.put("assembly", loadImage("stations/a_assembly_station.png"));
+        stations.put("cutting", loadImage("stations/c_cutting_station.png"));
+        stations.put("cooking", loadImage("stations/r_cooking_station.png"));
+        stations.put("ingredient", loadImage("stations/i_ingredient_storage.png"));
+        stations.put("plate", loadImage("stations/p_plate_storage.png"));
+        stations.put("serving", loadImage("stations/s_serving_counter.png"));
+        stations.put("trash", loadImage("stations/t_trash_station.png"));
+        stations.put("washing", loadImage("stations/w_washing_station.png"));
+        return stations;
     }
     
     /**

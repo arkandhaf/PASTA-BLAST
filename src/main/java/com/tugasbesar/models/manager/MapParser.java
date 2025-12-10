@@ -11,16 +11,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.tugasbesar.core.GamePanel;
+import com.tugasbesar.core.TileManager;
 import com.tugasbesar.models.stations.*; 
 
 public class MapParser {
     
     GamePanel gp;
     public List<List<Character>> mapLayout; 
+    private TileManager tileManager; 
 
     public MapParser(GamePanel gp) {
         this.gp = gp;
         this.mapLayout = new ArrayList<>();
+        this.tileManager = new TileManager(gp);
     }
 
     public void loadMap(String filename) {
@@ -97,17 +100,10 @@ public class MapParser {
     public void draw(Graphics2D g2) {
         if (mapLayout == null || mapLayout.isEmpty()) return;
 
-        int tileSize = gp.tileSize;
-
         for (int row = 0; row < mapLayout.size(); row++) {
             for (int col = 0; col < mapLayout.get(row).size(); col++) {
-                if ((col + row) % 2 == 0) g2.setColor(new Color(100, 100, 100)); 
-                else g2.setColor(new Color(80, 80, 80)); 
-                
-                g2.fillRect(col * tileSize, row * tileSize, tileSize, tileSize);
-                
-                g2.setColor(Color.BLACK);
-                g2.drawRect(col * tileSize, row * tileSize, tileSize, tileSize);
+                char tileType = mapLayout.get(row).get(col);
+                tileManager.drawTile(g2, col, row, tileType);
             }
         }
     }
