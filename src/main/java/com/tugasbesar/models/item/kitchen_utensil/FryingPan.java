@@ -1,22 +1,35 @@
 package com.tugasbesar.models.item.kitchen_utensil;
 
-import com.tugasbesar.models.interfaces.Preparable;
+import com.tugasbesar.models.interfaces.Cookable; 
+import com.tugasbesar.models.interfaces.Processable; 
 
 public class FryingPan extends BaseCookingDevice {
 
+   
     public FryingPan() {
-        super("Frying Pan", 1); // Kapasitas 1 (Goreng satu-satu)
+        super("Frying Pan", 1); 
     }
 
     @Override
-    public boolean canAccept(Preparable item) {
-        if (!contents.isEmpty()) return false; // Harus kosong
+    public boolean canAccept(Cookable item) {
         
-        String name = item.getName().toLowerCase();
+
+        if (!(item instanceof Processable)) {
+             System.out.println("[!] Item tidak dikenali.");
+             return false;
+        }
         
+
+        String name = ((Processable)item).getName().toLowerCase();
         
-        return name.contains("beef") || 
-               name.contains("fish") || 
-               name.contains("shrimp");
+
+        if (name.contains("beef") || name.contains("fish") || name.contains("shrimp")) {
+
+            return item.canBeCooked();
+        }
+        
+        System.out.println("[!] Frying Pan hanya untuk menggoreng daging atau seafood!");
+        return false;
     }
+    
 }

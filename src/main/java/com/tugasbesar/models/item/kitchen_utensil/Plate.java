@@ -1,67 +1,75 @@
 package com.tugasbesar.models.item.kitchen_utensil;
 
 import com.tugasbesar.models.abstracts.KitchenUtensil;
-import com.tugasbesar.models.interfaces.Preparable;
+import com.tugasbesar.models.interfaces.Processable; 
+import com.tugasbesar.models.interfaces.Placeable; 
+
 import java.util.stream.Collectors;
 
 public class Plate extends KitchenUtensil {
 
-    // STATUS KEBERSIHAN
-    // True = Bekas makan / berminyak (harus dicuci)
-    // False = Bersih / Baru (siap dipakai)
     private boolean isDirty;
 
     public Plate() {
-        super("Plate"); // Panggil parent untuk siapkan List contents
-        this.isDirty = false; // Default bersih
+        super("Plate"); 
+        this.isDirty = false; 
     }
-
-    // --- INTERAKSI MENAMBAH BAHAN ---
 
     @Override
-    public void addIngredient(Preparable item) {
-        // Cek dulu, boleh ga dimasukin?
+    public void addIngredient(Processable item) {
+        
         if (canAccept(item)) {
-            // Panggil method 'addIngredient' milik Parent (KitchenUtensil)
-            // Parent yang akan memasukkan item ke dalam List contents
             super.addIngredient(item); 
-        } else {
+            System.out.println("[Plate] " + item.getName() + " diletakkan di piring.");
+        } 
+    }
+
+    @Override
+    public boolean canAccept(Processable item) {
+        if (isDirty) {
             System.out.println("[!] Piring kotor! Cuci dulu di Washing Station.");
+            return false;
         }
+
+        if (!(item instanceof Placeable)) {
+            System.out.println("[!] Item ini tidak dapat diletakkan di piring.");
+            return false;
+        }
+        
+        Placeable placeableItem = (Placeable)item;
+        
+        if (!placeableItem.canBePlacedOnPlate()) {
+            System.out.println("[!] Item belum siap untuk diletakkan di piring (misal: mentah atau gosong).");
+            return false;
+        }
+        return true;
     }
 
-    // Validasi khusus Plate
-    public boolean canAccept(Preparable item) {
-        // Piring kotor gaboleh diisi makanan
-        return !isDirty;
-    }
 
-    // --- STATE MANAGEMENT (Cuci & Makan) ---
 
-    // Dipanggil oleh WashingStation (Proses Cuci Selesai)
     public void wash() {
-        super.clearContents(); // Kosongkan isi (pakai method parent)
-        this.isDirty = false;  // Ubah status jadi BERSIH
+        super.clearContents(); 
+        this.isDirty = false; 
+        System.out.println("[Plate] Piring bersih dan siap digunakan.");
     }
 
-    // Dipanggil oleh ServingStation (Proses Makan Selesai)
     public void markDirty() {
-        super.clearContents(); // Makanan dimakan habis
-        this.isDirty = true;   // Piring jadi KOTOR
+        this.isDirty = true; 
+        System.out.println("[Plate] Piring ditandai kotor (masih ada sisa/kosong).");
     }
 
     public boolean isClean() {
         return !isDirty;
     }
 
-    // --- LOGIC NAMA HIDANGAN (PENTING BUAT SKOR) ---
-    // Menggabungkan isi List menjadi satu String nama menu
+    public boolean isDirty() {
+        return isDirty;
+    }
+
     public String getDishName() {
         if (isDirty) return "Dirty Plate";
         if (contents.isEmpty()) return "Empty Plate";
 
-        // Menggabungkan nama bahan-bahan yang ada di piring
-        // Contoh output: "Pasta + Beef"
         return contents.stream()
                 .map(item -> item.getName())
                 .collect(Collectors.joining(" + "));

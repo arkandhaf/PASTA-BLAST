@@ -2,16 +2,19 @@ package com.tugasbesar.models.stations;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.abstracts.Item;
-import com.tugasbesar.models.interfaces.Preparable;
+// Hapus: import com.tugasbesar.models.interfaces.Preparable;
+
+// Import interface baru yang relevan
+import com.tugasbesar.models.interfaces.Processable; 
+
 import com.tugasbesar.models.item.IngredientFactory;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
 
 public class IngredientStorage extends Station {
     
-    private String ingredientName; // "Tomato", "Beef", dll
+    private String ingredientName; 
 
     public IngredientStorage(int x, int y, String ingredientName) {
-        // x, y, Nama, Symbol "I"
         super(x, y, "Storage: " + ingredientName, "I");
         this.ingredientName = ingredientName;
     }
@@ -21,48 +24,47 @@ public class IngredientStorage extends Station {
         Item hand = chef.getHeldItem();
         Item tableItem = itemOnStation;
 
-        // ==========================================
-        // 1. TANGAN CHEF KOSONG (AMBIL)
-        // ==========================================
+        
+        // 1. TANGAN CHEF KOSONG (AMBIL) 
         if (hand == null) {
             
-            // A. Kalau ada barang tertinggal di atas kotak -> AMBIL ITU DULU
+            // A. kalau ada barang tertinggal di atas kotak -> AMBIL ITU DULU
             if (tableItem != null) {
                 chef.setHeldItem(takeItem());
                 System.out.println("[Storage] Mengambil " + chef.getHeldItem().getName() + " dari atas kotak.");
             } 
             
-            // B. Kalau kotak kosong -> SPAWN BAHAN BARU (Unlimited)
+            // B. SPAWN BAHAN BARU (Unlimited)
             else {
                 spawnIngredient(chef);
             }
             return;
         }
 
-        // ==========================================
-        // 2. TANGAN CHEF ADA ITEM (TARUH / RAKIT)
-        // ==========================================
-        if (hand != null) {
 
-            // C. LOGIC RAKIT (ASSEMBLY LITE)
-            // Kasus: Di atas kotak ada Piring, Chef bawa Bahan -> Masukin Bahan ke Piring
-            if (tableItem instanceof Plate && hand instanceof Preparable) {
+        // 2. TANGAN CHEF ADA ITEM (TARUH / RAKIT)
+        if (hand != null) {
+            
+            // Logic Plating
+            // kalau di atas kotak ada piring, Chef bawa bahan (Processable) -> masukin bahan ke piring
+            if (tableItem instanceof Plate && hand instanceof Processable) { 
                 Plate p = (Plate) tableItem;
-                Preparable ing = (Preparable) hand;
+                Processable ing = (Processable) hand;
                 
-                // Cek apakah piring mau nerima (Logic Plate biasa)
-                // (Kamu bisa copy logic validasi Pasta dari AssemblyStation kalau mau strict, 
-                //  atau biarkan Plate.addIngredient yang handle validasi dasar)
-                if (p.canAccept(ing)) { // Asumsi Plate punya method ini/mirip
+                // Plate.canAccept sekarang menerima Processable
+                if (p.canAccept(ing)) { 
                     p.addIngredient(ing);
-                    chef.setHeldItem(null); // Bahan masuk piring
+                    chef.setHeldItem(null); 
                     System.out.println("[Storage] Merakit " + ing.getName() + " ke dalam Piring.");
+                    return;
+                } else {
+                    // Pesan jika piring kotor atau item tidak bisa ditaruh (misal: gosong)
+                    System.out.println("[Storage] Tidak bisa merakit. Piring kotor atau bahan tidak siap/cocok.");
                     return;
                 }
             }
 
-            // D. LOGIC TARUH BIASA
-            // Kalau kotak kosong -> Taruh barang apa aja (Piring/Panci/Bahan)
+            // kalau di atas kotak kosong -> taruh barang apa aja (piring/panci/bahan)
             if (isEmpty()) {
                 placeItem(hand);
                 chef.setHeldItem(null);
@@ -74,7 +76,7 @@ public class IngredientStorage extends Station {
         }
     }
 
-    // Helper untuk Spawn Bahan (Sama kayak factory sebelumnya)
+    // helper untuk spawn bahan (sama kayak factory)
     private void spawnIngredient(Chef chef) {
         switch (ingredientName.toLowerCase()) {
             case "tomato":
@@ -85,6 +87,12 @@ public class IngredientStorage extends Station {
                 break;
             case "pasta":
                 chef.setHeldItem(IngredientFactory.createPasta());
+                break;
+            case "fish": 
+                chef.setHeldItem(IngredientFactory.createFish());
+                break;
+            case "shrimp":
+                chef.setHeldItem(IngredientFactory.createShrimp());
                 break;
             default:
                 System.out.println("[Error] Tipe bahan tidak dikenal: " + ingredientName);

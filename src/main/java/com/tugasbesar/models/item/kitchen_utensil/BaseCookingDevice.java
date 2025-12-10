@@ -1,15 +1,17 @@
 package com.tugasbesar.models.item.kitchen_utensil;
 
 import com.tugasbesar.models.abstracts.KitchenUtensil;
-import com.tugasbesar.models.interfaces.Preparable;
+import com.tugasbesar.models.interfaces.Cookable; 
+import com.tugasbesar.models.interfaces.Processable;
 import com.tugasbesar.models.interfaces.CookingDevice;
 import com.tugasbesar.models.item.Ingredient;
+import com.tugasbesar.models.enums.IngredientState; 
 
-public abstract class BaseCookingDevice extends KitchenUtensil implements CookingDevice {
+public abstract class BaseCookingDevice extends KitchenUtensil implements CookingDevice { // Tetap ABSTRACT
 
     protected int capacityLimit;
     
-    // Timer Variables
+    // timer
     protected boolean isCooking = false;
     protected int currentTick = 0;
     protected final int TICKS_TO_COOK = 5;
@@ -20,25 +22,45 @@ public abstract class BaseCookingDevice extends KitchenUtensil implements Cookin
         this.capacityLimit = capacityLimit;
     }
 
-    // --- INTERFACE IMPLEMENTATION ---
+    @Override
+    public boolean isPortable() { 
+        return true; 
+    }
 
     @Override
-    public boolean isPortable() { return true; }
+    public int capacity() { 
+        return capacityLimit; 
+    }
 
     @Override
-    public int capacity() { return capacityLimit; }
-
-    @Override
-    public void addIngredient(Preparable item) {
+    public void addIngredient(Cookable item) {
         if (contents.size() >= capacity()) {
             System.out.println("[!] Penuh!");
             return;
         }
-        if (canAccept(item)) {
-            super.addIngredient(item); // Masuk ke List Parent
-            System.out.println("[Alat] " + item.getName() + " masuk ke " + getName());
+        
+   
+        if (canAccept(item)) { 
+            super.addIngredient((Processable) item); 
+            System.out.println("[Alat] " + ((Processable) item).getName() + " masuk ke " + getName());
         }
     }
+    
+
+    @Override 
+    public abstract boolean canAccept(Cookable item); 
+    
+    
+    @Override
+
+    public boolean canAccept(Processable item) {
+        if (item instanceof Cookable) {
+            return this.canAccept((Cookable) item); 
+        }
+        System.out.println("[!] Hanya bahan yang bisa dimasak yang diterima!");
+        return false;
+    }
+
 
     @Override
     public void startCooking() {
@@ -50,7 +72,7 @@ public abstract class BaseCookingDevice extends KitchenUtensil implements Cookin
 
     @Override
     public void processCookingTick() {
-        // Auto-start safety
+        // auto-start
         if (!isCooking && !contents.isEmpty()) startCooking();
 
         if (!isCooking || contents.isEmpty() || isBurned()) return;
@@ -68,17 +90,14 @@ public abstract class BaseCookingDevice extends KitchenUtensil implements Cookin
         }
     }
 
-    // --- HELPER METHODS ---
-
+    // helper methods
     @Override
     public boolean isBurned() {
         if (contents.isEmpty()) return false;
-        
-        // PAKAI LIST JADI GAMPANG: Cek index 0
-        Preparable item = contents.get(0);
+        Processable item = contents.get(0); 
         
         if (item instanceof Ingredient) {
-            return ((Ingredient) item).getState().toString().equals("BURNED");
+            return ((Ingredient) item).getState().equals(IngredientState.BURNED);
         }
         return false;
     }
@@ -90,17 +109,27 @@ public abstract class BaseCookingDevice extends KitchenUtensil implements Cookin
     
     @Override
     public int getCookingPercentage() {
+        if (contents.isEmpty()) return 0; 
         if (currentTick >= TICKS_TO_BURN) return 100;
-        return (int) ((currentTick / (double) TICKS_TO_COOK) * 100);
+        
+        int percentage = (int) ((currentTick / (double) TICKS_TO_COOK) * 100);
+        return Math.min(percentage, 100);
     }
 
+
     private void cookContents() {
-        for (Preparable p : contents) p.cook();
+        for (Processable item : contents) {
+            if (item instanceof Cookable) {
+                ((Cookable) item).cook();
+            }
+        }
     }
 
     private void burnContents() {
-        for (Preparable p : contents) {
-            if (p instanceof Ingredient) ((Ingredient) p).burn();
+        for (Processable item : contents) {
+            if (item instanceof Ingredient) {
+                ((Ingredient) item).burn();
+            }
         }
     }
 

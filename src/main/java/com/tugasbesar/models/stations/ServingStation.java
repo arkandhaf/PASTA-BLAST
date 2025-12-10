@@ -2,7 +2,12 @@ package com.tugasbesar.models.stations;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
-// import com.tugasbesar.core.models.manager.OrderManager; // Buka komen ini nanti kalau sudah ada Manager
+import com.tugasbesar.models.item.Dish; 
+import com.tugasbesar.models.interfaces.Processable;
+
+// ASUMSI: Import OrderManager dan ScoreManager (jika ada) sudah disiapkan
+import com.tugasbesar.models.manager.OrderManager; 
+// import com.tugasbesar.core.models.manager.ScoreManager; // Asumsi ada ScoreManager
 
 public class ServingStation extends Station {
 
@@ -15,52 +20,54 @@ public class ServingStation extends Station {
 
     @Override
     public void interact(Chef chef) {
-        // 1. Validasi: Chef harus bawa item
-        if (!chef.hasItem()) {
-            System.out.println("[Serving] Mana makanannya? Bawa piring berisi makanan ke sini.");
-            return;
-        }
-
-        // 2. Validasi: Item harus Piring
-        if (!(chef.getHeldItem() instanceof Plate)) {
-            System.out.println("[Serving] Makanan harus ditaruh di Piring dulu!");
+        // 1. Validasi Awal (Chef bawa Plate)
+        if (!chef.hasItem() || !(chef.getHeldItem() instanceof Plate)) {
+            System.out.println("[Serving] Bawa piring berisi makanan ke sini!");
             return;
         }
 
         Plate plate = (Plate) chef.getHeldItem();
 
-        // 3. Validasi: Piring tidak boleh kosong
+        // 2. Validasi Piring
         if (plate.getContents().isEmpty()) {
-            System.out.println("[Serving] Jangan sajikan piring kosong! (Pelanggan Marah)");
-            // Bisa kurangi skor di sini
+            System.out.println("[Serving] Jangan sajikan piring kosong! Pelanggan tidak senang.");
             return;
         }
 
-        // ========================================================
-        // 4. LOGIKA PENILAIAN (ORDER CHECKING)
-        // ========================================================
+        if (plate.isDirty()) {
+            System.out.println("[Serving] Piring ini kotor (sisa). Silakan cuci dulu!");
+            return;
+        }
         
-        // Nanti kamu bisa hubungkan dengan OrderManager di sini.
-        // Contoh logika sederhana sementara:
-        System.out.println(">>> [Serving] Makanan disajikan!"); 
+        // 3. Validasi Dish (Apakah sudah dirakit menjadi Dish?)
+        Processable content = plate.getContents().get(0);
+        if (!(content instanceof Dish)) {
+            System.out.println("[Serving] Makanan belum dirakit sempurna. Silakan ke Assembly Station dulu!");
+            return;
+        }
         
-        // Cek isi piring (Misal: Apakah ini Pasta Carbonara?)
-        // Dish dish = plate.getDish(); 
-        // boolean isCorrect = OrderManager.getInstance().checkOrder(dish);
-        
-        // if (isCorrect) ScoreManager.add(100);
-        // else ScoreManager.minus(50);
-        
-        // ========================================================
-        // 5. BERSIHKAN & KIRIM PIRING KOTOR (SESUAI NOTES)
-        // ========================================================
+        Dish dish = (Dish) content;
 
-        // Makanan dimakan (hapus isi)
-        plate.getContents().clear(); 
+
         
-        // Kirim LANGSUNG ke PlateStorage (Sesuai notes kamu: "langsung dikirim")
+        // Cek ke OrderManager apakah Dish ini cocok dengan salah satu pesanan aktif
+        boolean isCorrectOrder = OrderManager.getInstance().checkOrder(dish);
+        
+        if (isCorrectOrder) {
+            System.out.println("🎉 >>> [Serving] Disajikan: " + dish.getRecipeName() + " — Pesanan Tepat! Skor bertambah.");
+
+        } else {
+            System.out.println("❌ >>> [Serving] Disajikan: " + dish.getRecipeName() + " — Pesanan SALAH/Kadaluarsa! Skor berkurang.");
+  
+        }
+    
+
+
+        plate.markDirty();
+    
         if (plateStorageRef != null) {
             plateStorageRef.addDirtyPlateFromServing(plate);
+            System.out.println("[Serving] Piring kotor kembali ke Storage.");
         }
 
         // Kosongkan tangan Chef

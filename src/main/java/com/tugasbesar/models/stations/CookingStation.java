@@ -1,103 +1,118 @@
 package com.tugasbesar.models.stations;
 
-import com.tugasbesar.models.actors.Chef;
-import com.tugasbesar.models.abstracts.Item;
 import java.awt.Color;
 import java.awt.Graphics2D;
 
-// Import ini sementara dimatikan biar gak error (karena filenya belum ada)
-// import com.tugasbesar.models.item.kitchen_utensil.BaseCookingDevice; 
+import com.tugasbesar.models.actors.Chef;
+import com.tugasbesar.models.abstracts.Item; 
+
+// --- IMPORTS DARI LOGIC TEMAN (PENTING) ---
+import com.tugasbesar.models.interfaces.Cookable; 
+import com.tugasbesar.models.interfaces.Processable; 
+import com.tugasbesar.models.item.kitchen_utensil.BaseCookingDevice;
+import com.tugasbesar.models.enums.IngredientState; 
 
 public class CookingStation extends Station {
 
-    // --- VARIABEL SIMULASI MASAK ---
-    private boolean isCooking = false;
-    private int cookingTimer = 0;
-    private final int MAX_COOK_TIME = 120; // 2 Detik (60 FPS * 2)
-
-    // Constructor Sederhana (Agar cocok dengan GamePanel setupGame)
+    // Constructor 1: Yang dipanggil MapParser/GamePanel (Hanya x, y)
     public CookingStation(int x, int y) {
-        super(x, y, "Stove", "S"); // "S" simbol di layar
+        super(x, y, "Stove", "S"); 
+        this.itemOnStation = null; // Awalnya kosong (atau isi panci default jika mau)
+    }
+
+    // Constructor 2: Versi Teman (Jika map mendefinisikan alat masak di awal)
+    public CookingStation(int x, int y, BaseCookingDevice startingUtensil) {
+        super(x, y, "Stove", "S"); 
+        this.itemOnStation = startingUtensil; 
     }
 
     @Override
     public void interact(Chef chef) {
-        Item handItem = chef.getHeldItem();
+        // --- PAKAI LOGIC CANGGIH PUNYA TEMAN ---
+        Item hand = chef.getHeldItem();
+        Item tableItem = itemOnStation;
 
-        // 1. TARUH BARANG & MULAI MASAK
-        // Syarat: Chef bawa barang & Kompor kosong
-        if (handItem != null && isEmpty()) {
-            placeItem(handItem);       // Taruh item ke station
-            chef.setHeldItem(null);    // Kosongkan tangan chef
+        // 1. Jika di meja ada Alat Masak (Panci/Wajan)
+        if (tableItem instanceof BaseCookingDevice) {
+            BaseCookingDevice utensil = (BaseCookingDevice) tableItem;
+
+            // A. MASUKKAN BAHAN (Chef bawa bahan -> Masuk Panci)
+            if (chef.hasItem() && hand instanceof Cookable) { 
+                Cookable ingredient = (Cookable) hand;
+
+                if (utensil.canAccept(ingredient)) { 
+                    utensil.addIngredient(ingredient);
+                    utensil.startCooking(); // Auto cook 
+
+                    chef.setHeldItem(null);
+                    System.out.println("🔥 [Stove] " + ((Processable)ingredient).getName() + " masuk ke " + utensil.getName());
+                    return;
+                }
+            }
             
-            // Mulai Timer Masak
-            isCooking = true;
-            cookingTimer = MAX_COOK_TIME;
-            
-            System.out.println("🔥 [Stove] Mulai memasak " + handItem.getName() + "...");
-        }
-        
-        // 2. AMBIL BARANG
-        // Syarat: Chef tangan kosong & Kompor ada isi
-        else if (handItem == null && !isEmpty()) {
-            
-            // Opsional: Kalau mau dipaksa nunggu matang dulu
-            if (isCooking) {
-                System.out.println("⚠️ [Stove] Sabar! Belum matang! (" + cookingTimer + ")");
-            } else {
-                chef.setHeldItem(takeItem()); // Ambil item balik
-                System.out.println("✅ [Stove] Mengambil " + chef.getHeldItem().getName());
+            // B. AMBIL HASIL MASAKAN (Matang atau Gosong)
+            // Chef tangan kosong mengambil hasil dari utensil di stove
+            if (!chef.hasItem() && !utensil.isEmpty()) {
                 
-                // Reset status masak
-                isCooking = false;
-                cookingTimer = 0;
+                // Cek isi panci
+                Processable result = utensil.getContents().get(0); 
+
+                // Kalau Matang atau Gosong, baru boleh diambil
+                if (result.getState() == IngredientState.COOKED || result.getState() == IngredientState.BURNED) {
+                    
+                    // Ambil item dari Utensil 
+                    Item takenItem = utensil.takeItem(); 
+                    chef.setHeldItem(takenItem);
+                    
+                    System.out.println("✅ [Stove] " + chef.getName() + " mengambil: " + result.getName() + " (" + result.getState() + ")");
+                    return;
+                }
             }
         }
+        
+        // 2. SAFETY: Cegah taruh barang sembarangan di stove kosong (kecuali Panci)
+        if (isEmpty() && chef.hasItem() && !(chef.getHeldItem() instanceof BaseCookingDevice)) {
+            System.out.println("⚠️ [!] Bahaya! Jangan taruh " + chef.getHeldItem().getName() + " langsung di api.");
+            return;
+        }
+
+        // 3. DEFAULT: Angkat Panci / Taruh Panci
+        defaultInteract(chef);
     }
 
     @Override
     public void update() {
-        // --- LOGIKA TIMER MASAK ---
-        if (isCooking) {
-            cookingTimer--;
-            
-            // Kalau waktu habis
-            if (cookingTimer <= 0) {
-                isCooking = false;
-                cookingTimer = 0;
-                System.out.println("🔔 [Stove] TING! Makanan Matang!");
-                
-                // Nanti di sini logic ubah: Tomato -> TomatoSauce
-            }
+        // --- PAKAI LOGIC UPDATE PUNYA TEMAN ---
+        // Auto-cook (timer jalan terus di dalam objek Panci)
+        if (itemOnStation instanceof BaseCookingDevice) {
+            ((BaseCookingDevice) itemOnStation).processCookingTick();
         }
-        
-        /* --- LOGIKA ASLI DEPA (NANTI DIAKTIFKAN) ---
-           Kalau BaseCookingDevice sudah ada, pakai ini:
-           
-           if (itemOnStation instanceof BaseCookingDevice) {
-               ((BaseCookingDevice) itemOnStation).processCookingTick();
-           } 
-        */
     }
 
-    // Override Draw untuk nambahin efek visual pas lagi masak
+    // --- PAKAI VISUAL PUNYA KAMU ---
     @Override
     public void draw(Graphics2D g2) {
-        // Panggil gambar kotak dasar dari Station
+        // 1. Gambar Kotak Stove & Item di atasnya (Panci)
         super.draw(g2); 
         
-        int tileSize = 48; // Hardcode size sementara
-
-        // Kalau lagi masak, gambar Bar Loading / Api
-        if (isCooking) {
-            // Gambar Api (Kotak Orange Kecil)
-            g2.setColor(Color.ORANGE);
-            g2.fillRect(posX * tileSize + 5, posY * tileSize + 5, 10, 10);
+        // 2. Visual Tambahan: Progress Bar Masak
+        if (itemOnStation instanceof BaseCookingDevice) {
+            BaseCookingDevice utensil = (BaseCookingDevice) itemOnStation;
             
-            // Gambar Progress Bar Sederhana
-            g2.setColor(Color.GREEN);
-            int barWidth = (int) (((double) cookingTimer / MAX_COOK_TIME) * tileSize);
-            g2.fillRect(posX * tileSize, posY * tileSize - 5, barWidth, 5);
+            // Kita perlu akses timer di dalam utensil buat bikin bar
+            // Asumsi: utensil punya method getCookProgress() atau sejenisnya.
+            // Kalau belum ada, minimal kita kasih tanda kalau lagi masak.
+            
+            if (!utensil.isEmpty()) { // Kalau panci ada isinya
+                int tileSize = 48; // Hardcode size
+                
+                // Gambar Indikator Sedang Masak (Api Kecil)
+                g2.setColor(Color.ORANGE);
+                g2.fillRect(posX * tileSize + 5, posY * tileSize + 5, 10, 10);
+                
+                // Nanti minta Person 2 bikin method: utensil.getCookingPercentage() 
+                // biar bisa bikin Loading Bar hijau disini.
+            }
         }
     }
 }
