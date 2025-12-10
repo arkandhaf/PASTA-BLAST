@@ -5,11 +5,13 @@ import com.tugasbesar.models.abstracts.Item;
 import com.tugasbesar.models.interfaces.Choppable; 
 import com.tugasbesar.models.interfaces.Processable; 
 import com.tugasbesar.models.enums.IngredientState;
+import com.tugasbesar.models.item.kitchen_utensil.Plate; 
+import com.tugasbesar.models.item.kitchen_utensil.BaseCookingDevice; 
 
 public class CuttingStation extends Station {
     
     private int cutProgress = 0;
-    private final int CUT_SPEED = 25; 
+    private final int CUT_SPEED = 34; 
 
     public CuttingStation(int x, int y) {
         super(x, y, "Cutting Station", "C");
@@ -20,95 +22,145 @@ public class CuttingStation extends Station {
         Item hand = chef.getHeldItem();
         Item tableItem = itemOnStation;
 
-        // Cek item di meja
-        if (tableItem instanceof Processable) {
-            Processable item = (Processable) tableItem;
+        if (chef.isBusy()){
+            chef.setBusy(false);
+            System.out.println("[Cutting] " + chef.getName() + " menghentikan pemotongan. Progress tersimpan (" + cutProgress + "%)");
+            return;
+        }
+        
+        if (tableItem instanceof Plate && hand instanceof BaseCookingDevice) {
+            Plate plateOnTable = (Plate) tableItem;
+            BaseCookingDevice utensilInHand = (BaseCookingDevice) hand;
             
-            // 1. AMBIL HASIL (CHOPPED) 
-            if (item.getState() == IngredientState.CHOPPED && !chef.hasItem()) {
-                chef.setHeldItem(takeItem());
-                cutProgress = 0;
-                System.out.println("[Cutting] " + chef.getName() + " mengambil " + chef.getHeldItem().getName() + " (CHOPPED)");
+            
+            if (!utensilInHand.getContents().isEmpty() && !plateOnTable.isDirty()) {
+                
+                Processable ingredientToValidate = utensilInHand.getContents().get(0);
+                
+                if (plateOnTable.canAccept(ingredientToValidate)) {
+                    
+                    Processable takenIngredient = (Processable) utensilInHand.takeItem(); 
+                    plateOnTable.addIngredient(takenIngredient); 
+                    
+                    System.out.println("[Cutting: Plating (Utensil->Plate)] Isi Utensil (" + takenIngredient.getName() + ") pindah ke Piring di meja.");
+                    return;
+                }
+            }
+        }
+        
+
+        if (hand instanceof Plate && tableItem instanceof Processable) {
+            Plate plate = (Plate) hand;
+            Processable ingredient = (Processable) tableItem;
+            
+            
+            if (!plate.isDirty() && plate.canAccept(ingredient)) { 
+                
+                Item takenItem = takeItem(); 
+                plate.addIngredient((Processable) takenItem); 
+                
+                System.out.println("[Cutting: Plating (Plate->Inventory)] " + ingredient.getName() + " pindah ke piring di tangan.");
+                cutProgress = 0; 
                 return;
             }
         }
         
-        // 2. TARUH BAHAN (RAW) 
+        
+        if (tableItem instanceof Choppable && tableItem instanceof Processable) {
+            Processable pItem = (Processable) tableItem;
+            Choppable cItem = (Choppable) tableItem;
+            
+            
+            if (pItem.getState() == IngredientState.CHOPPED && !chef.hasItem()) {
+                chef.setHeldItem(takeItem());
+                cutProgress = 0; // Reset progress
+                System.out.println("[Cutting] " + chef.getName() + " mengambil " + chef.getHeldItem().getName() + " (CHOPPED)");
+                return;
+            }
+            
+
+            if (pItem.getState() == IngredientState.RAW && cItem.canBeChopped() && !chef.hasItem()) {
+                chef.setBusy(true); // Chef masuk ke busy state
+                System.out.println("[Cutting] " + chef.getName() + " mulai memotong " + pItem.getName());
+                return;
+            }
+        }
+        
+
         if (isEmpty() && chef.hasItem()) {
-            // Item harus Choppable DAN canBeChopped (yakni statusnya RAW)
-            if (hand instanceof Choppable) {
+            
+            
+            if (hand instanceof Plate) {
+                Item itemToPlace = chef.getHeldItem(); 
+                placeItem(itemToPlace); 
+                chef.setHeldItem(null);
+                System.out.println("[Cutting] " + chef.getName() + " menaruh Piring di meja.");
+                cutProgress = 0; 
+                return;
+            }
+            
+            
+            if (hand instanceof Choppable && hand instanceof Processable) {
                 Choppable chopItem = (Choppable) hand;
+                Processable pItem = (Processable) hand;
                 
-                if (chopItem.canBeChopped()) { // Memastikan item RAW dan memang Choppable
-                    
+                
+                if (chopItem.canBeChopped() && pItem.getState() == IngredientState.RAW) { 
                     Item itemToPlace = chef.getHeldItem(); 
                     placeItem(itemToPlace); 
                     chef.setHeldItem(null);
-                    cutProgress = 0; // Reset progress saat taruh item baru
+                    cutProgress = 0; 
                     
                     System.out.println("[Cutting] " + chef.getName() + " menaruh " + itemToPlace.getName());
                 } else {
-                    // Item Choppable, tapi tidak bisa dipotong (misal: sudah CHOPPED atau non-choppable)
-                    System.out.println(">>> [TOLAK] " + chef.getName() + ", item ini sudah diproses atau tidak bisa dipotong!");
+                    System.out.println(">>> [TOLAK] Item harus RAW dan bisa dipotong!");
                 }
             } else {
-                // Item di tangan bukan Choppable sama sekali
-                System.out.println(">>> [TOLAK] " + chef.getName() + ", item ini tidak bisa dipotong!");
+                 System.out.println(">>> [TOLAK] Item ini tidak bisa dipotong atau ditaruh di stasiun ini!");
             }
             return;
         }
 
-        // 3. AMBIL BALIK / SWAP (Pembatalan Pemotongan)
+        
         if (!isEmpty() && !chef.hasItem()) {
-              // Jika chef mengambil barang balik, progress di-reset (bisa dilanjutkan nanti)
              chef.setHeldItem(takeItem());
-             cutProgress = 0; 
-             System.out.println("[Cutting] " + chef.getName() + " membatalkan pemotongan & mengambil barang balik.");
+             System.out.println("[Cutting] " + chef.getName() + " mengambil " + chef.getHeldItem().getName());
              return;
         }
         
-        // Logic default (swap/ganti) tidak perlu karena sudah ditangani oleh tiga prioritas di atas
+        
+        defaultInteract(chef);
     }
 
     @Override
     public void update() {
-        // SYARAT: harus ada Chef yang berdiri di sini (chefAtStation tidak null)
-        if (chefAtStation == null) return;
+        if (chefAtStation == null || !chefAtStation.isBusy()) return;
 
-        // Cek item di meja harus bertipe Choppable
-        if (itemOnStation instanceof Choppable) {
-            Choppable item = (Choppable) itemOnStation;
+        if (itemOnStation instanceof Choppable && itemOnStation instanceof Processable) {
+            Processable pItem = (Processable) itemOnStation;
+            Choppable cItem = (Choppable) itemOnStation;
             
-            // Gunakan canBeChopped() untuk validasi penuh (isChoppable DAN statusnya RAW)
-            if (item.canBeChopped()) { 
-                
-                // Casting ke Processable tidak diperlukan, tapi jika diperlukan untuk nama:
-                Processable pItem = (Processable) itemOnStation;
-                String workingChef = chefAtStation.getName();
-                
+        
+            if (cItem.canBeChopped() && pItem.getState() == IngredientState.RAW) { 
                 cutProgress += CUT_SPEED;
                 
-                System.out.println("[" + workingChef + "] " + getProgressBar(20) + 
-                                   " Memotong " + pItem.getName());
-
-                // cek Selesai
                 if (cutProgress >= 100) {
-                    item.chop(); // Mengubah status menjadi CHOPPED
-                    cutProgress = 100; // Stabilkan progress di 100
-                    System.out.println(">>> [SELESAI] " + workingChef + " berhasil memotong " + pItem.getName() + "!");
+                    cItem.chop(); 
+                    cutProgress = 100;
+                    chefAtStation.setBusy(false); 
+                    System.out.println(">>> [SELESAI] " + chefAtStation.getName() + " berhasil memotong " + pItem.getName() + "!");
                 }
+            } else {
+                
+                chefAtStation.setBusy(false); 
             }
+        } else {
+            
+            chefAtStation.setBusy(false);
         }
     }
 
-    // helper Progress Bar
-    public String getProgressBar(int width) {
-        int percent = Math.min(100, cutProgress);
-        int filled = (int) Math.round((percent / 100.0) * width);
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        for (int i = 0; i < width; i++) sb.append(i < filled ? '#' : '-');
-        sb.append("] ").append(percent).append('%');
-        return sb.toString();
+    public int getCutProgress() {
+        return cutProgress;
     }
 }

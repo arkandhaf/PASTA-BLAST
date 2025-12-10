@@ -2,8 +2,12 @@ package com.tugasbesar.models.stations;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.abstracts.Item;
+
+// --- [WAJIB ADA BIAR GAK ERROR] ---
 import java.awt.Graphics2D;
 import java.awt.Color;
+import java.awt.Font;
+// ----------------------------------
 
 public abstract class Station {
     
@@ -13,6 +17,8 @@ public abstract class Station {
     protected String symbol; 
 
     protected Item itemOnStation;   
+    
+    // [PENTING] Variabel ini dikembalikan biar CuttingStation gak error
     protected Chef chefAtStation;   
 
     public Station(int x, int y, String name, String symbol) {
@@ -21,12 +27,14 @@ public abstract class Station {
         this.name = name;
         this.symbol = symbol;
         this.itemOnStation = null;
+        this.chefAtStation = null;
     }
 
     public abstract void interact(Chef chef);
 
     public void update() {}
 
+    // --- Helper Methods ---
     public boolean placeItem(Item item) {
         if (itemOnStation != null) return false;
         this.itemOnStation = item;
@@ -40,41 +48,49 @@ public abstract class Station {
     }
 
     public boolean isEmpty() { return itemOnStation == null; }
+    
+    // Method buat set Chef yang lagi aktif di station (dipake CuttingStation)
     public void setChef(Chef chef) { this.chefAtStation = chef; }
-    public void removeChef() { this.chefAtStation = null; }
+    public Chef getChef() { return chefAtStation; }
 
-    // --- [FIX 1] Method defaultInteract (Agar CookingStation tidak error) ---
+    // --- Default Interact ---
     protected void defaultInteract(Chef chef) {
         Item hand = chef.getHeldItem();
 
-        // Taruh Item
         if (hand != null && isEmpty()) {
             placeItem(hand);
             chef.setHeldItem(null);
-            System.out.println("[Action] Menaruh " + itemOnStation.getName() + " di " + name);
+            System.out.println("⬇️ [Action] Menaruh " + itemOnStation.getName() + " di " + name);
         }
-        // Ambil Item
         else if (hand == null && !isEmpty()) {
             chef.setHeldItem(takeItem());
-            System.out.println("[Action] Mengambil " + chef.getHeldItem().getName() + " dari " + name);
+            System.out.println("⬆️ [Action] Mengambil " + chef.getHeldItem().getName() + " dari " + name);
         }
     }
 
-    // --- [FIX 2] Method Draw (Agar muncul di layar) ---
+    // --- Visualisasi ---
     public void draw(Graphics2D g2) {
-        int tileSize = 48; // Asumsi 48px
+        int tileSize = 48; 
+        int screenX = posX * tileSize;
+        int screenY = posY * tileSize;
+
         g2.setColor(Color.DARK_GRAY);
-        g2.fillRect(posX * tileSize, posY * tileSize, tileSize, tileSize);
+        g2.fillRect(screenX, screenY, tileSize, tileSize);
+        
+        g2.setColor(Color.BLACK);
+        g2.drawRect(screenX, screenY, tileSize, tileSize);
+
         g2.setColor(Color.WHITE);
-        g2.drawRect(posX * tileSize, posY * tileSize, tileSize, tileSize);
-        g2.drawString(symbol, posX * tileSize + 20, posY * tileSize + 30);
+        g2.setFont(new Font("Arial", Font.BOLD, 20));
+        g2.drawString(symbol, screenX + 15, screenY + 30);
 
         if (itemOnStation != null) {
-            g2.setColor(Color.RED);
-            g2.fillOval(posX * tileSize + 12, posY * tileSize + 12, 24, 24);
+            g2.setColor(Color.YELLOW); 
+            g2.fillOval(screenX + 12, screenY + 12, 24, 24);
         }
     }
-
+    
+    // Getters
     public String getName() { return name; }
     public String getSymbol() { return symbol; }
     public Item getItemOnStation() { return itemOnStation; }

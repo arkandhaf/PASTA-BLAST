@@ -3,15 +3,16 @@ package com.tugasbesar.core;
 import javax.swing.JPanel;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font; // [BARU] Import Font buat ngerapihin tulisan YOU
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import com.tugasbesar.models.actors.Chef;
 
-// Import Station punya Depa
+import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.stations.Station;
-import com.tugasbesar.models.stations.CookingStation;
-import com.tugasbesar.models.stations.CuttingStation;
+
+// --- [UBAH] IMPORT MAP PARSER & ORDER MANAGER ---
+import com.tugasbesar.models.manager.MapParser; // Ganti TileManager jadi MapParser
+import com.tugasbesar.models.manager.OrderManager; 
 
 public class GamePanel extends JPanel implements Runnable {
 
@@ -19,8 +20,10 @@ public class GamePanel extends JPanel implements Runnable {
     final int originalTileSize = 16;
     final int scale = 3;
     public final int tileSize = originalTileSize * scale; // 48x48 pixel
-    public final int maxScreenCol = 16;
-    public final int maxScreenRow = 12;
+    
+    // Ukuran Map (Sesuaikan dengan file .txt nanti)
+    public final int maxScreenCol = 20; 
+    public final int maxScreenRow = 15;
     public final int screenWidth = tileSize * maxScreenCol; 
     public final int screenHeight = tileSize * maxScreenRow; 
 
@@ -45,8 +48,14 @@ public class GamePanel extends JPanel implements Runnable {
     public Chef chef1;
     public Chef chef2;
     
-    // Wadah Station
-    public Station station[] = new Station[20]; 
+    // Wadah Station (Array besar biar muat 1 map)
+    public Station station[] = new Station[100]; 
+
+    // --- [UBAH] INISIALISASI MANAGER ---
+    // Ganti nama variabel dari tileM jadi mapParser biar jelas
+    public MapParser mapParser = new MapParser(this); 
+    
+    public OrderManager orderManager = OrderManager.getInstance();
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -59,28 +68,20 @@ public class GamePanel extends JPanel implements Runnable {
         chef1 = new Chef(this, keyH, "P1", 1);
         chef2 = new Chef(this, keyH, "P2", 2); 
         
-        // Posisi awal Chef (Manual call method baru di Chef)
+        // Posisi awal Chef
         chef1.setDefaultValues(5, 5); 
-        chef2.setDefaultValues(10, 5);
+        chef2.setDefaultValues(6, 5);
 
         gameState = playState; 
     }
 
     public void setupGame() {
-        try {
-            // Setup Manual (Hardcode)
-            // Kompor di (6,6)
-            station[0] = new CookingStation(6, 6); 
-            
-            // Talenan di (9,6) (Uncomment kalau file CuttingStation sudah ada)
-            // station[1] = new CuttingStation(9, 6); 
-            
-            System.out.println("✅ Setup Manual Berhasil! Station siap.");
-            
-        } catch (Exception e) {
-            System.out.println("⚠️ Error Setup Station! Cek file CookingStation.");
-            e.printStackTrace();
-        }
+        // --- [PENTING] LOAD MAP DARI FILE ---
+        // Panggil MapParser untuk baca file dan isi array station[]
+        // Pastikan path filenya benar!
+        mapParser.loadMap("/maps/map01.txt"); 
+        
+        System.out.println("✅ Map & Station Loaded Successfully via MapParser!");
     }
 
     public void startGameThread() {
@@ -138,11 +139,16 @@ public class GamePanel extends JPanel implements Runnable {
                 chef2.update(keyH); 
             }
             
-            // Update Station
+            // Update Station (Logic masak, potong, dll)
             for (int i = 0; i < station.length; i++) {
                 if (station[i] != null) {
                     station[i].update();
                 }
+            }
+            
+            // Update Order
+            if (orderManager != null) {
+                orderManager.update();
             }
         }
     }
@@ -155,32 +161,34 @@ public class GamePanel extends JPanel implements Runnable {
             g2.setColor(Color.WHITE);
             g2.drawString("PRESS ENTER TO START", 100, 100);
         } else {
-            // 1. Gambar Station DULUAN (Layer Bawah)
+            // --- URUTAN GAMBAR (LAYERING) ---
+            
+            // 1. BACKGROUND (Lantai) - Digambar oleh MapParser
+            if (mapParser != null) {
+                mapParser.draw(g2); 
+            }
+
+            // 2. STATIONS (Objek di atas lantai)
             for (int i = 0; i < station.length; i++) {
                 if (station[i] != null) {
                     station[i].draw(g2);
                 }
             }
 
-            // 2. Gambar Chef (Layer Atas)
+            // 3. PLAYERS (Chef)
             chef1.draw(g2);
             chef2.draw(g2);
             
-            // 3. UI Status
+            // 4. UI / HUD
             g2.setColor(Color.WHITE);
             g2.setFont(g2.getFont().deriveFont(30F)); 
             g2.drawString("Time: " + gameTime, 20, 40); 
             
-            // --- [UPDATE] INDIKATOR GILIRAN YANG RAPI ---
+            // Indikator "YOU"
             Chef activeChef = (activePlayerID == 1) ? chef1 : chef2;
-            
             g2.setColor(Color.YELLOW);
-            // Pake Font Arial Bold ukuran 12 (Kecil Rapi)
             g2.setFont(new Font("Arial", Font.BOLD, 12)); 
-            
-            // Posisi pas di tengah atas kepala
-            g2.drawString("▼ YOU", activeChef.x + 8, activeChef.y - 5);
-            // ---------------------------------------------
+            g2.drawString("▼ YOU", activeChef.x + 8, activeChef.y - 10);
             
             // Pause Overlay
             if(gameState == pauseState) {

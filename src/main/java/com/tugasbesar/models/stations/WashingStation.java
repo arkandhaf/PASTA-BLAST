@@ -13,7 +13,7 @@ public class WashingStation extends Station {
     // Logic Cuci
     private boolean isWashing = false;
     private int washProgress = 0; // 0 - 100
-    private final int WASH_SPEED = 20; // 5 Tick selesai
+    private final int WASH_SPEED = 33; 
 
     public WashingStation(int x, int y) {
         // x, y, Nama, Symbol "W"

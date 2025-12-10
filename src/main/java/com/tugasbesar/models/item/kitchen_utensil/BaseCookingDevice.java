@@ -14,8 +14,8 @@ public abstract class BaseCookingDevice extends KitchenUtensil implements Cookin
     // timer
     protected boolean isCooking = false;
     protected int currentTick = 0;
-    protected final int TICKS_TO_COOK = 5;
-    protected final int TICKS_TO_BURN = 10;
+    protected final int TICKS_TO_COOK = 12;
+    protected final int TICKS_TO_BURN = 25;
 
     public BaseCookingDevice(String name, int capacityLimit) {
         super(name); 
@@ -38,6 +38,10 @@ public abstract class BaseCookingDevice extends KitchenUtensil implements Cookin
             System.out.println("[!] Penuh!");
             return;
         }
+
+        this.currentTick = 0;
+        this.isCooking = false;
+
         
    
         if (canAccept(item)) { 
@@ -79,7 +83,7 @@ public abstract class BaseCookingDevice extends KitchenUtensil implements Cookin
 
         currentTick++;
 
-        if (currentTick == TICKS_TO_COOK) {
+        if (currentTick == TICKS_TO_COOK && currentTick< TICKS_TO_BURN) {
             cookContents();
             System.out.println(">>> [MATANG] " + getName() + " selesai masak!");
         } 
@@ -104,7 +108,19 @@ public abstract class BaseCookingDevice extends KitchenUtensil implements Cookin
 
     @Override
     public boolean isCooked() {
-        return currentTick >= TICKS_TO_COOK && currentTick < TICKS_TO_BURN;
+        if (contents.isEmpty()) return false;
+        Processable item = contents.get(0);
+
+        if (item instanceof Ingredient) {
+            return ((Ingredient) item).getState().equals(IngredientState.COOKED);
+        }
+    
+        return false;
+    }
+
+    //cek kondisi 
+    public boolean isCookedOrBurned() {
+        return isCooked() || isBurned();
     }
     
     @Override

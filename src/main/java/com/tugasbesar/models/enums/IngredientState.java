@@ -5,6 +5,6 @@ public enum IngredientState {
     CHOPPED,    
     COOKING,    
     COOKED,     
-    BURNED,     
-    SERVED      
+    BURNED,         
+    SERVED
 }

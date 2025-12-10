@@ -5,8 +5,10 @@ import com.tugasbesar.models.item.kitchen_utensil.Plate;
 import java.util.Stack;
 
 public class PlateStorage extends Station {
-
-    // stack tunggal: bisa isi piring BERSIH atau KOTOR
+    
+    // stack untuk menyimpan piring (bersih & kotor)
+    // piring yang paling atas adalah yang diambil terlebih dahulu
+   
     private Stack<Plate> plateStack;
 
     public PlateStorage(int x, int y) {
@@ -30,7 +32,7 @@ public class PlateStorage extends Station {
             return;
         }
 
-        //piring atas
+        // kalau storage ga kosong, ambil piring paling atas
         if (!plateStack.isEmpty()) {
             // cek piring paling atas
             Plate topPlate = plateStack.peek();
