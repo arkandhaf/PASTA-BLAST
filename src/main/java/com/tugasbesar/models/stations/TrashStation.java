@@ -13,46 +13,40 @@ public class TrashStation extends Station {
 
     @Override
     public void interact(Chef chef) {
-        if (!chef.hasItem()) return;
+        if (!chef.hasItem()) {
+            System.out.println("⚠️ [Trash] Tidak ada yang bisa dibuang.");
+            return;
+        }
 
         Item item = chef.getHeldItem();
 
-  
-        // C1: piring --> buang isi doang, piringnya tidak
-
+        // KASUS 1: PIRING (Buang isinya saja, piringnya jangan dibuang)
         if (item instanceof Plate) {
             Plate plate = (Plate) item;
-            
             if (!plate.getContents().isEmpty()) {
-                plate.getContents().clear(); // kosongkan isi
-                
-                
-                System.out.println("[Trash] Membuang sisa makanan dari Piring.");
+                plate.clearContents(); // Hapus semua makanan di piring
+                System.out.println("🗑️ [Trash] Sisa makanan dibuang dari Piring.");
             } else {
-                System.out.println("[!] Piring sudah kosong, tidak ada yang dibuang.");
+                System.out.println("⚠️ [Trash] Piring sudah kosong.");
             }
-            return; 
+            return;
         }
 
-       
-        // C2: PANCI/WAJAN (buang isi, alat tetap)
+        // KASUS 2: PANCI/WAJAN (Buang isinya saja, alatnya jangan)
         if (item instanceof BaseCookingDevice) {
             BaseCookingDevice utensil = (BaseCookingDevice) item;
-            
-            // cek apakah ada isinya 
-            if (!utensil.getContents().isEmpty()) {
-                utensil.getContents().clear(); // kosongkan masakan 
-                
-                System.out.println("[Trash] Membuang masakan dari " + utensil.getName());
+            if (!utensil.isEmpty()) {
+                utensil.takeItem(); // Ambil isinya dan hilangkan
+                System.out.println("🔥 [Trash] Masakan gosong dibuang dari " + utensil.getName());
             } else {
-                System.out.println("[!] " + utensil.getName() + " sudah bersih/kosong.");
+                System.out.println("⚠️ [Trash] " + utensil.getName() + " sudah kosong.");
             }
-            return; 
+            return;
         }
 
- 
-        // C3: BAHAN (buang Itemnya)
+        // KASUS 3: BAHAN MAKANAN / ITEM LAIN (Buang Itemnya)
+        // Hapus item dari tangan chef
         chef.setHeldItem(null);
-        System.out.println("[Trash] " + item.getName() + " dibuang ke tempat sampah.");
+        System.out.println("🗑️ [Trash] " + item.getName() + " dibuang ke tempat sampah.");
     }
 }

@@ -15,9 +15,32 @@ public class Plate extends KitchenUtensil {
         this.isDirty = false; 
     }
 
+    // --- LOGIC UTAMA (Wajib Ada untuk Station) ---
+
+    // Dipanggil oleh WashingStation saat selesai mencuci
+    public void clean() {
+        this.contents.clear(); // Kosongkan isi
+        this.isDirty = false;  // Ubah status jadi bersih
+        System.out.println("[Plate] Piring dicuci dan sekarang bersih.");
+    }
+
+    // Dipanggil oleh ServingStation setelah makanan disajikan
+    public void markDirty() {
+        this.isDirty = true; 
+        // Biasanya piring kotor itu kosong dari makanan, tapi punya status 'dirty'
+        // Kita tidak clear() disini, biar ServingStation yang ngatur logika sisa makanannya
+    }
+
+    // Dipanggil oleh TrashStation & WashingStation
+    @Override
+    public void clearContents() {
+        super.clearContents(); // Hapus semua ingredient di dalamnya
+    }
+
+    // ------------------------------------------------
+
     @Override
     public void addIngredient(Processable item) {
-        
         if (canAccept(item)) {
             super.addIngredient(item); 
             System.out.println("[Plate] " + item.getName() + " diletakkan di piring.");
@@ -26,41 +49,29 @@ public class Plate extends KitchenUtensil {
 
     @Override
     public boolean canAccept(Processable item) {
+        // 1. Cek Kebersihan
         if (isDirty) {
             System.out.println("[!] Piring kotor! Cuci dulu di Washing Station.");
             return false;
         }
 
+        // 2. Cek apakah item bisa ditaruh (Interface Placeable)
         if (!(item instanceof Placeable)) {
             System.out.println("[!] Item ini tidak dapat diletakkan di piring.");
             return false;
         }
         
-        Placeable placeableItem = (Placeable)item;
-        
+        // 3. Cek status item (misal: Steak Mentah gaboleh di piring)
+        Placeable placeableItem = (Placeable) item;
         if (!placeableItem.canBePlacedOnPlate()) {
-            System.out.println("[!] Item belum siap untuk diletakkan di piring (misal: mentah atau gosong).");
+            System.out.println("[!] Item belum siap plating (masih mentah/gosong).");
             return false;
         }
+        
         return true;
     }
 
-
-
-    public void wash() {
-        super.clearContents(); 
-        this.isDirty = false; 
-        System.out.println("[Plate] Piring bersih dan siap digunakan.");
-    }
-
-    public void markDirty() {
-        this.isDirty = true; 
-        System.out.println("[Plate] Piring ditandai kotor (masih ada sisa/kosong).");
-    }
-
-    public boolean isClean() {
-        return !isDirty;
-    }
+    // --- HELPER METHODS ---
 
     public boolean isDirty() {
         return isDirty;

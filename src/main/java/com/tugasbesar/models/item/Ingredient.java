@@ -6,12 +6,10 @@ import com.tugasbesar.models.interfaces.Choppable;
 import com.tugasbesar.models.interfaces.Cookable;
 import com.tugasbesar.models.interfaces.Placeable;
 
-
-
 public class Ingredient extends Item implements Choppable, Cookable, Placeable {
     
     private IngredientState state;
-    private boolean isChoppable; 
+    private boolean isChoppable; // Ini False untuk Pasta
 
     public Ingredient(String name, boolean isChoppable) {
         super(name);
@@ -19,8 +17,10 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
         this.isChoppable = isChoppable;
     }
 
+    // --- LOGIC CHOPPING ---
     @Override
     public boolean canBeChopped() {
+        // Syarat: Harus boleh dipotong (True) DAN masih mentah (RAW)
         return isChoppable && state == IngredientState.RAW;
     }
 
@@ -31,9 +31,16 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
         }
     }
 
+    // --- LOGIC COOKING ---
     @Override
     public boolean canBeCooked() {
-        return state == IngredientState.RAW || state == IngredientState.CHOPPED;
+        // Bisa dimasak kalau:
+        // 1. Sudah dipotong (CHOPPED) - misal Tomat/Lettuce
+        // 2. ATAU Masih RAW tapi emang gak bisa dipotong (RAW) - misal Pasta
+        if (state == IngredientState.CHOPPED) return true;
+        if (state == IngredientState.RAW && !isChoppable) return true; 
+        
+        return false;
     }
 
     @Override
@@ -43,10 +50,10 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
         }
     }
     
-    
+    // --- LOGIC PLATING ---
     @Override
     public boolean canBePlacedOnPlate() {
-        //cuman yang gak gosong yang boleh ditaruh di piring
+        // Yang gosong gak boleh disajikan
         return state != IngredientState.BURNED;
     }
 
@@ -55,7 +62,6 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
         return state;
     }
 
-    
     public void burn() {
         this.state = IngredientState.BURNED;
     }

@@ -23,5 +23,4 @@ public class IngredientFactory {
         return new Ingredient("Shrimp", true);
     }
 
-    
 }
