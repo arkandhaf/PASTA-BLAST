@@ -150,11 +150,14 @@ public class GamePanel extends JPanel implements Runnable {
             }
 
             for (int i = 0; i < station.length; i++) {
-                if (station[i] != null)
+                if (station[i] != null) {
                     station[i].update();
+                }
             }
-            if (orderManager != null)
+
+            if (orderManager != null) {
                 orderManager.update();
+            }
 
             updateHeldItemPopup(chef1, heldItemPopups[0]);
             updateHeldItemPopup(chef2, heldItemPopups[1]);
