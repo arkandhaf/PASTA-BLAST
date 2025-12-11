@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.tugasbesar.core.GamePanel;
-import com.tugasbesar.core.TileManager;
 import com.tugasbesar.models.stations.*;
 import com.tugasbesar.models.actors.Chef;
 
@@ -19,12 +18,10 @@ public class MapParser {
 
     GamePanel gp;
     public List<List<Character>> mapLayout;
-    private TileManager tileManager;
 
     public MapParser(GamePanel gp) {
         this.gp = gp;
         this.mapLayout = new ArrayList<>();
-        this.tileManager = new TileManager(gp);
     }
 
     public void loadMap(String filename) {

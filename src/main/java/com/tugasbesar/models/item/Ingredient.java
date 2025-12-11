@@ -7,13 +7,13 @@ import com.tugasbesar.models.interfaces.Cookable;
 import com.tugasbesar.models.interfaces.Placeable;
 
 public class Ingredient extends Item implements Choppable, Cookable, Placeable {
-    
+
     private IngredientState state;
-    private boolean isChoppable; 
+    private boolean isChoppable;
 
     public Ingredient(String name, boolean isChoppable) {
         super(name);
-        this.state = IngredientState.RAW; 
+        this.state = IngredientState.RAW;
         this.isChoppable = isChoppable;
     }
 
@@ -33,10 +33,13 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
     @Override
     public boolean canBeCooked() {
         // 1. Jika Pasta (isChoppable = false) -> Bisa dimasak dari RAW
-        if (!isChoppable && state == IngredientState.RAW) return true;
-        
-        // 2. Jika Bahan Lain (Tomato, Beef, dll) -> Harus CHOPPED dulu baru bisa dimasak
-        if (isChoppable && state == IngredientState.CHOPPED) return true;
+        if (!isChoppable && state == IngredientState.RAW)
+            return true;
+
+        // 2. Jika Bahan Lain (Tomato, Beef, dll) -> Harus CHOPPED dulu baru bisa
+        // dimasak
+        if (isChoppable && state == IngredientState.CHOPPED)
+            return true;
 
         return false;
     }
@@ -47,16 +50,27 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
             this.state = IngredientState.COOKED;
         }
     }
-    
+
     @Override
     public boolean canBePlacedOnPlate() {
         return state != IngredientState.BURNED;
     }
 
     @Override
-    public IngredientState getState() { return state; }
-    public void burn() { this.state = IngredientState.BURNED; }
-    public void setState(IngredientState state) { this.state = state; }
+    public IngredientState getState() {
+        return state;
+    }
+
+    public void burn() {
+        this.state = IngredientState.BURNED;
+    }
+
+    public void setState(IngredientState state) {
+        this.state = state;
+    }
+
     @Override
-    public String toString() { return name + " (" + state + ")"; }
+    public String toString() {
+        return name + " (" + state + ")";
+    }
 }

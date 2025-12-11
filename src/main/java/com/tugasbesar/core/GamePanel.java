@@ -6,7 +6,6 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.stations.Station;
@@ -36,7 +35,6 @@ public class GamePanel extends JPanel implements Runnable {
     public final int playState = 1;
     public final int pauseState = 2;
     public final int gameOverState = 3;
-    public final int gameOverState = 3;
 
     public KeyHandler keyH = new KeyHandler(this);
     public CollisionChecker cChecker = new CollisionChecker(this);
@@ -55,15 +53,12 @@ public class GamePanel extends JPanel implements Runnable {
 
     public MapParser mapParser = new MapParser(this);
     public OrderManager orderManager = OrderManager.getInstance();
-    public AssetManager assetManager = AssetManager.getInstance();
-    public StationRenderer stationRenderer;
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         this.setBackground(Color.BLACK);
         this.setDoubleBuffered(true);
         this.addKeyListener(keyH);
-        this.addMouseListener(new MouseHandler(this));
         this.setFocusable(true);
 
         chef1 = new Chef(this, keyH, "P1", 1);

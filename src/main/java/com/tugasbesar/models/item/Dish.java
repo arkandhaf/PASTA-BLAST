@@ -33,7 +33,7 @@ public class Dish extends Item implements Processable {
     // Implementasi Processable
     @Override
     public IngredientState getState() {
-        return IngredientState.SERVED; 
+        return IngredientState.SERVED;
     }
 
     @Override

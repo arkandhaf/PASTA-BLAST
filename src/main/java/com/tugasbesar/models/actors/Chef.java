@@ -2,15 +2,11 @@ package com.tugasbesar.models.actors;
 
 import com.tugasbesar.core.GamePanel;
 import com.tugasbesar.core.KeyHandler;
-import com.tugasbesar.core.AssetManager;
 import com.tugasbesar.models.abstracts.Entity;
 import com.tugasbesar.models.abstracts.Item;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
-import java.util.HashMap;
-import java.util.Map;
 
 public class Chef extends Entity {
 
@@ -20,12 +16,6 @@ public class Chef extends Entity {
     private Item heldItem;
     private boolean isBusy;
     private Color chefColor;
-
-    // Asset sprites
-    private Map<String, BufferedImage> standingSprites;
-    private Map<String, BufferedImage> walkingSprites;
-    private BufferedImage currentSprite;
-    private AssetManager assetManager;
 
     public Chef(GamePanel gp, KeyHandler keyH, String name, int playerID) {
         this.gp = gp;
@@ -40,14 +30,7 @@ public class Chef extends Entity {
         this.solidAreaDefaultX = solidArea.x;
         this.solidAreaDefaultY = solidArea.y;
 
-        // Load sprite assets
-        loadSpriteAssets();
         setDefaultValues();
-    }
-
-    private void loadSpriteAssets() {
-        standingSprites = assetManager.loadChefStanding();
-        walkingSprites = new HashMap<>();
     }
 
     public void setDefaultValues() {
@@ -201,7 +184,6 @@ public class Chef extends Entity {
         int textLen = (int) g2.getFontMetrics().getStringBounds(name, g2).getWidth();
         g2.drawString(name, drawX + (drawSize / 2) - (textLen / 2), drawY - 2);
 
-        // Draw held item indicator
         if (heldItem != null) {
             g2.setColor(new Color(255, 215, 0));
             g2.fillOval(drawX + (drawSize / 2) - 8, drawY + (drawSize / 2) - 8, 16, 16);

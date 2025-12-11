@@ -5,7 +5,7 @@ import javax.swing.JFrame;
 
 public class Main {
     public static void main(String[] args) {
-        
+
         JFrame window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);
@@ -17,7 +17,7 @@ public class Main {
         // --- [SETUP DULUAN] ---
         // Kita load map SEBELUM window ditampilkan
         // Biar pas window muncul, mapnya udah siap.
-        gamePanel.setupGame(); 
+        gamePanel.setupGame();
         // ----------------------
 
         window.pack();
@@ -26,4 +26,4 @@ public class Main {
 
         gamePanel.startGameThread();
     }
-} 
+}
