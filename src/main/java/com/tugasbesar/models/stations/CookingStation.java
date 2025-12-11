@@ -3,8 +3,6 @@ package com.tugasbesar.models.stations;
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.abstracts.Item;
 import com.tugasbesar.models.item.Ingredient;
-import com.tugasbesar.models.enums.IngredientState;
-import com.tugasbesar.models.interfaces.Processable;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
 import com.tugasbesar.models.item.kitchen_utensil.BaseCookingDevice;
 import java.awt.Color;
@@ -25,37 +23,9 @@ public class CookingStation extends Station {
     public void interact(Chef chef) {
         Item hand = chef.getHeldItem();
 
-        // -----------------------------------------------------------
-        // 1. PLATING LOGIC (Chef bawa Piring -> Ambil Masakan)
-        // -----------------------------------------------------------
-        if (hand instanceof Plate && !isEmpty()) {
-            if (isCooking) {
-                System.out.println("⚠️ Tunggu sampai matang!");
-                return;
-            }
-
-            Plate plate = (Plate) hand;
-            Item itemOnTable = itemOnStation;
-
-            if (itemOnTable instanceof Processable) {
-                Processable ingredient = (Processable) itemOnTable;
-                
-                // Masukkan ke piring
-                if (plate.canAccept(ingredient)) {
-                    Item takenItem = takeItem();
-                    plate.addIngredient((Processable) takenItem);
-                    cookProgress = 0; // Reset visual
-                    System.out.println("🍽️ [Stove] " + takenItem.getName() + " dimasukkan ke Piring.");
-                    return;
-                }
-            }
-        }
-
-        // -----------------------------------------------------------
-        // 2. TARUH ITEM (Bahan atau Panci)
-        // -----------------------------------------------------------
+        // 1. TARUH ITEM
         if (chef.hasItem() && isEmpty()) {
-            // Transit Alat
+            // Transit Alat/Piring
             if (hand instanceof Plate || hand instanceof BaseCookingDevice) {
                 placeItem(hand);
                 chef.setHeldItem(null);
@@ -65,6 +35,8 @@ public class CookingStation extends Station {
             // Masak Bahan
             if (hand instanceof Ingredient) {
                 Ingredient ing = (Ingredient) hand;
+                
+                // Cek Logic canBeCooked() yang baru di Ingredient.java
                 if (ing.canBeCooked()) {
                     placeItem(hand);
                     chef.setHeldItem(null);
@@ -73,23 +45,51 @@ public class CookingStation extends Station {
                     cookProgress = 0;
                     System.out.println("🔥 [Stove] Mulai memasak " + ing.getName());
                 } else {
-                    System.out.println("⚠️ Bahan ini tidak bisa dimasak.");
+                    System.out.println("⚠️ [Stove] Bahan ini belum siap dimasak (Mungkin harus dipotong dulu?)");
                 }
             }
             return;
         }
 
-        // -----------------------------------------------------------
-        // 3. AMBIL ITEM (Manual)
-        // -----------------------------------------------------------
+        // 2. AMBIL ITEM
         if (!chef.hasItem() && !isEmpty()) {
             if (isCooking) {
-                System.out.println("⚠️ Belum matang!");
+                System.out.println("⚠️ [Stove] Sedang memasak...");
                 return;
             }
             chef.setHeldItem(takeItem());
-            cookProgress = 0;
-            System.out.println("⬆️ [Stove] Mengambil item.");
+            cookProgress = 0; 
+            System.out.println("⬆️ [Stove] Mengambil masakan.");
+        }
+        
+        // 3. PLATING (Piring Ambil Makanan)
+        if (hand instanceof Plate && !isEmpty()) {
+             if (isCooking) {
+                 System.out.println("⚠️ Masih dimasak!");
+                 return;
+             }
+
+             Plate plate = (Plate) hand;
+             
+             // Cek apakah yang di meja itu Ingredient?
+             if (itemOnStation instanceof Ingredient) {
+                 Ingredient food = (Ingredient) itemOnStation;
+                 
+                 // Cek apakah piring mau terima? (Harus COOKED)
+                 if (plate.canAccept(food)) {
+                     // AMBIL DARI MEJA
+                     Item takenItem = takeItem(); 
+                     
+                     // MASUKKAN KE PIRING
+                     plate.addIngredient((Ingredient) takenItem);
+                     
+                     cookProgress = 0;
+                     System.out.println("🍽️ [Stove] Berhasil memindahkan " + takenItem.getName() + " ke Piring.");
+                 } else {
+                     System.out.println("⚠️ [Stove] Piring menolak item ini (Mungkin belum COOKED?)");
+                 }
+             }
+             return;
         }
     }
 
@@ -97,7 +97,9 @@ public class CookingStation extends Station {
     public void update() {
         if (isCooking && itemOnStation != null) {
             cookProgress += COOK_SPEED;
-            if (cookProgress >= MAX_PROGRESS) finishCooking();
+            if (cookProgress >= MAX_PROGRESS) {
+                finishCooking();
+            }
         }
     }
 
@@ -105,7 +107,7 @@ public class CookingStation extends Station {
         isCooking = false;
         if (itemOnStation instanceof Ingredient) {
             ((Ingredient) itemOnStation).cook(); 
-            System.out.println("✅ [Stove] Matang!");
+            System.out.println("✅ [Stove] Matang! (" + itemOnStation.getName() + " COOKED)");
         }
     }
 
@@ -116,6 +118,13 @@ public class CookingStation extends Station {
             int width = (int) ((double)cookProgress / MAX_PROGRESS * 40);
             g2.setColor(isCooking ? Color.RED : Color.GREEN);
             g2.fillRect(posX * 48 + 4, posY * 48 - 10, width, 6);
+        }
+        
+        // Visual Text kalau sudah matang
+        if (!isEmpty() && !isCooking && itemOnStation instanceof Ingredient) {
+             g2.setColor(Color.GREEN);
+             g2.setFont(g2.getFont().deriveFont(9F));
+             g2.drawString("COOKED", posX * 48 + 5, posY * 48 + 20);
         }
     }
 }

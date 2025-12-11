@@ -9,7 +9,6 @@ import com.tugasbesar.models.item.kitchen_utensil.Plate;
 import com.tugasbesar.models.manager.OrderManager; 
 import com.tugasbesar.models.manager.Recipe; 
 
-// --- [WAJIB ADA BIAR GAK ERROR] ---
 import java.util.ArrayList; 
 import java.util.List;
 
@@ -24,115 +23,143 @@ public class AssemblyStation extends Station {
         Item hand = chef.getHeldItem();
         Item tableItem = itemOnStation;
 
-        // 1. RAKIT (ASSEMBLY)
-        // Jika chef tangan kosong & di meja ada piring berisi -> Coba rakit jadi Dish
-        if (hand == null && tableItem instanceof Plate && !((Plate)tableItem).isEmpty()) {
-            performAssembly((Plate) tableItem);
+        // =============================================================
+        // 1. CHEF TANGAN KOSONG & MEJA ADA PIRING (MASALAH UTAMA KAMU)
+        // =============================================================
+        if (hand == null && tableItem instanceof Plate) {
+            Plate p = (Plate) tableItem;
+
+            // A. CEK APAKAH SUDAH JADI DISH (MAKANAN JADI)?
+            // Kalau isinya cuma 1 item dan item itu adalah DISH, berarti siap diambil.
+            boolean isFinishedDish = !p.isEmpty() && 
+                                     p.getContents().size() == 1 && 
+                                     p.getContents().get(0) instanceof Dish;
+
+            if (isFinishedDish) {
+                // AMBIL PIRINGNYA!
+                chef.setHeldItem(takeItem());
+                System.out.println("⬆️ [Assembly] Mengambil Dish Jadi: " + chef.getHeldItem().getName());
+                return;
+            }
+
+            // B. KALAU BELUM JADI DISH, COBA RAKIT
+            // Kalau piring ada isinya (bahan-bahan) tapi belum jadi Dish
+            if (!p.isEmpty()) {
+                boolean success = performAssembly(p);
+                
+                // Kalau BERHASIL dirakit jadi Dish, biarkan di meja dulu (biar pemain lihat perubahannya).
+                // Pemain harus tekan spasi SEKALI LAGI untuk mengambilnya (masuk ke logika A di atas).
+                if (success) {
+                    return; 
+                }
+                
+                // Kalau GAGAL dirakit (resep gak cocok), AMBIL AJA PIRINGNYA
+                // Biar gak stuck piringnya di meja selamanya.
+                chef.setHeldItem(takeItem());
+                System.out.println("⬆️ [Assembly] Mengambil Piring (Belum jadi Dish).");
+                return;
+            }
+            
+            // C. KALAU PIRING KOSONG, AMBIL AJA
+            chef.setHeldItem(takeItem());
+            System.out.println("⬆️ [Assembly] Mengambil Piring Kosong.");
             return;
         }
-        // Jika chef bawa piring berisi & meja kosong -> Coba rakit jadi Dish
-        if (hand instanceof Plate && !((Plate)hand).isEmpty() && tableItem == null) {
-            performAssembly((Plate) hand);
-            return;
+
+        // =============================================================
+        // 2. CHEF BAWA PIRING (MAU RAKIT DI TANGAN)
+        // =============================================================
+        if (hand instanceof Plate && tableItem == null) {
+            Plate p = (Plate) hand;
+            if (!p.isEmpty()) {
+                performAssembly(p); // Coba rakit di tangan
+                // Gak perlu return, karena item tetep di tangan
+            }
+            // Kalau mau taruh piring (swap logic di bawah) akan ketahan kalau berhasil rakit?
+            // Kita lanjut ke logic taruh di bawah kalau mau naruh.
         }
         
-        // --- LOGIC PLATING (Menaruh Bahan ke Piring) ---
-        
-        // Case A: Piring di Tangan, Bahan di Meja
+        // =============================================================
+        // 3. PLATING (GABUNG BAHAN)
+        // =============================================================
+        // Piring di Tangan + Bahan di Meja
         if (hand instanceof Plate && tableItem instanceof Processable) { 
             performPlating((Plate) hand, (Processable) tableItem);
-            this.itemOnStation = null; // hapus bahan dari meja
+            this.itemOnStation = null; // Hapus bahan dari meja
             return;
         }
-
-        // Case B: Bahan di Tangan, Piring di Meja
+        // Bahan di Tangan + Piring di Meja
         if (hand instanceof Processable && tableItem instanceof Plate) { 
             performPlating((Plate) tableItem, (Processable) hand);
-            chef.setHeldItem(null); // hapus bahan dari tangan
+            chef.setHeldItem(null); // Hapus bahan dari tangan
             return;
         }
 
-        // --- LOGIC TARUH/AMBIL STANDAR ---
-        
-        // Taruh Piring (Hanya piring yang boleh ditaruh jika meja kosong)
-        if (hand instanceof Plate && isEmpty()) {
-            placeItem(hand);
-            chef.setHeldItem(null);
-            System.out.println("✅ [Assembly] Menaruh Piring.");
-            return;
-        }
-        
-        // Ambil Item dari meja
-        if (hand == null && !isEmpty()) {
-            chef.setHeldItem(takeItem());
-            System.out.println("✅ [Assembly] Mengambil " + chef.getHeldItem().getName());
-            return;
-        }
-
-        // Blocker: Jangan taruh sampah sembarangan
-        if (chef.hasItem() && isEmpty() && !(hand instanceof Plate)) {
-            System.out.println("⚠️ [Assembly] Hanya Piring yang boleh ditaruh di sini.");
+        // =============================================================
+        // 4. TARUH ITEM (STANDAR)
+        // =============================================================
+        if (hand != null && isEmpty()) {
+            // Khusus Assembly, biasanya cuma boleh taruh Piring atau Bahan
+            if (hand instanceof Plate || hand instanceof Processable) {
+                placeItem(hand);
+                chef.setHeldItem(null);
+                System.out.println("⬇️ [Assembly] Menaruh " + itemOnStation.getName());
+            } else {
+                System.out.println("⚠️ [Assembly] Item ini tidak bisa ditaruh di sini.");
+            }
             return;
         }
     }
 
-    // Helper: Taruh bahan ke piring
-    private void performPlating(Plate plate, Processable item) {
-        // Cek validasi bahan
-        if (!isValidForPlating(item)) {
-            return;
-        }
+    // --- HELPER LOGIC ---
 
-        // Cek apakah piring sudah ada Dish jadi
+    private void performPlating(Plate plate, Processable item) {
+        if (!isValidForPlating(item)) return;
+        
+        // Jangan masukin bahan kalau udah jadi Dish
         if (plate.getContents().stream().anyMatch(content -> content instanceof Dish)) {
-            System.out.println("⚠️ [Assembly] Piring sudah ada Hidangan Jadi.");
+            System.out.println("⚠️ Piring sudah ada Hidangan Jadi.");
             return;
         }
         
         plate.addIngredient(item); 
-        System.out.println("🥗 [Assembly] Menambahkan " + item.getName() + " ke piring.");
+        System.out.println("🥗 Menambahkan " + item.getName() + " ke piring.");
     }
     
-    // Helper: Validasi bahan sebelum masuk piring
     private boolean isValidForPlating(Processable item) {
         if (item.getState() == IngredientState.RAW || item.getState() == IngredientState.BURNED) {
-            System.out.println("⚠️ [Assembly] Gagal: Bahan harus matang (COOKED) atau dipotong (CHOPPED).");
+            System.out.println("⚠️ Gagal: Bahan harus matang atau dipotong.");
             return false;
         }
         return true;
     }
 
-    // Helper: Cek Resep & Jadikan Dish
-    private void performAssembly(Plate plate) {
+    // Ubah jadi boolean biar tau sukses atau nggak
+    private boolean performAssembly(Plate plate) {
         List<Processable> contents = plate.getContents();
         
-        // Cek apakah isinya sudah Dish?
+        // Cek dulu, jangan-jangan udah jadi Dish
         if (contents.size() == 1 && contents.get(0) instanceof Dish) {
-            System.out.println("✅ [Assembly] Hidangan sudah matang sempurna.");
-            return;
+            // System.out.println("✅ Sudah jadi Dish.");
+            return false; // False karena tidak ada "perubahan" baru (sudah jadi dari awal)
         }
         
-        // Ambil nama bahan-bahan
         List<String> ingredientNames = new ArrayList<>();
         for (Processable item : contents) {
             ingredientNames.add(item.getName());
         }
         
-        // Cek Resep ke OrderManager
         Recipe recipeMatch = OrderManager.getInstance().findMatchingRecipe(ingredientNames); 
         
         if (recipeMatch != null) {
             plate.clearContents(); 
-        
-            // Bikin Dish Baru
             Dish finalDish = new Dish(recipeMatch.getRecipeName(), ingredientNames); 
             plate.addIngredient(finalDish); 
-            
-            System.out.println("🎉 [Assembly] SUKSES! Jadi: " + finalDish.getRecipeName());
-            
+            System.out.println("🎉 SUKSES! Jadi: " + finalDish.getRecipeName());
+            return true; // Berhasil merakit
         } else {
-            // String ingredientList = String.join(" + ", ingredientNames);
-            System.out.println("❌ [Assembly] Gagal: Resep tidak ditemukan untuk kombinasi ini.");
+            // System.out.println("❌ Gagal: Resep tidak ditemukan.");
+            return false; // Gagal merakit
         }
     }
 }

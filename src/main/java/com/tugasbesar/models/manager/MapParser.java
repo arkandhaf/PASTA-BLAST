@@ -27,19 +27,16 @@ public class MapParser {
     public void loadMap(String filename) {
         try {
             String projectPath = System.getProperty("user.dir");
-            String fullPath = projectPath + "/src/resources/assets/maps/" + filename;
-            
-            System.out.println("🔍 Mencari file di: " + fullPath);
+            String fullPath = projectPath + "/src/main/resources/assets/maps/" + filename;
             File file = new File(fullPath);
-
             if (!file.exists()) {
-                System.err.println("❌ ERROR: File tidak ditemukan!");
-                return; 
+                fullPath = projectPath + "/src/resources/assets/maps/" + filename;
+                file = new File(fullPath);
             }
+            if (!file.exists()) return;
 
             InputStream is = new FileInputStream(file);
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
-
             String line;
             int row = 0;
             int stationIndex = 0;
@@ -61,50 +58,27 @@ public class MapParser {
                 row++;
             }
             br.close();
-            System.out.println("✅ SUKSES! Map terbaca.");
-
         } catch (Exception e) { e.printStackTrace(); }
     }
 
     private void createStation(char c, int x, int y, int index) {
         switch (c) {
-            // --- ALAT ---
-            case 'R': // R = STOVE (Request User)
-            case 'K': // K = Kompor (Backup)
-                gp.station[index] = new CookingStation(x, y); 
-                break;
-            
+            case 'A': gp.station[index] = new AssemblyStation(x, y); break;
+            case 'R': gp.station[index] = new CookingStation(x, y); break;
             case 'C': gp.station[index] = new CuttingStation(x, y); break;
             case 'W': gp.station[index] = new WashingStation(x, y); break;
-            
-            // --- LAYANAN ---
             case 'S': 
             case 'V': gp.station[index] = new ServingStation(x, y, gp); break;
-            
-            case 'P': 
-            case 'A': gp.station[index] = new PlateStorage(x, y); break;
-            
+            case 'P': gp.station[index] = new PlateStorage(x, y); break;
             case 'T': gp.station[index] = new TrashStation(x, y); break;
+            
+            // Ingredients
+            case 'J': gp.station[index] = new IngredientStorage(x, y, "Pasta"); break;
+            case 'I': gp.station[index] = new IngredientStorage(x, y, "Tomato"); break;
+            case 'B': gp.station[index] = new IngredientStorage(x, y, "Beef"); break;
+            case 'F': gp.station[index] = new IngredientStorage(x, y, "Fish"); break;
+            case 'L': gp.station[index] = new IngredientStorage(x, y, "Shrimp"); break;
 
-            // --- BAHAN MAKANAN (Sesuai Factory) ---
-            case 'I': 
-                gp.station[index] = new IngredientStorage(x, y, "Tomato"); 
-                break;
-            case 'J': 
-                gp.station[index] = new IngredientStorage(x, y, "Pasta"); 
-                break;
-            case 'B': 
-                gp.station[index] = new IngredientStorage(x, y, "Beef"); 
-                break;
-            case 'L': // L = Lettuce diganti Shrimp atau Fish
-            case 'F': 
-                gp.station[index] = new IngredientStorage(x, y, "Fish"); 
-                break;
-            case 'H': // H = Shrimp (Udang)
-                gp.station[index] = new IngredientStorage(x, y, "Shrimp"); 
-                break;
-
-            // --- TEMBOK ---
             case 'X': 
                 gp.station[index] = new Station(x, y, "Wall", "X") {
                     @Override public void interact(Chef c) {} 

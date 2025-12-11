@@ -9,7 +9,7 @@ import com.tugasbesar.models.interfaces.Placeable;
 public class Ingredient extends Item implements Choppable, Cookable, Placeable {
     
     private IngredientState state;
-    private boolean isChoppable; // Ini False untuk Pasta
+    private boolean isChoppable; 
 
     public Ingredient(String name, boolean isChoppable) {
         super(name);
@@ -17,10 +17,8 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
         this.isChoppable = isChoppable;
     }
 
-    // --- LOGIC CHOPPING ---
     @Override
     public boolean canBeChopped() {
-        // Syarat: Harus boleh dipotong (True) DAN masih mentah (RAW)
         return isChoppable && state == IngredientState.RAW;
     }
 
@@ -31,15 +29,15 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
         }
     }
 
-    // --- LOGIC COOKING ---
+    // --- [FIX] LOGIC MASAK SESUAI KRITERIA ---
     @Override
     public boolean canBeCooked() {
-        // Bisa dimasak kalau:
-        // 1. Sudah dipotong (CHOPPED) - misal Tomat/Lettuce
-        // 2. ATAU Masih RAW tapi emang gak bisa dipotong (RAW) - misal Pasta
-        if (state == IngredientState.CHOPPED) return true;
-        if (state == IngredientState.RAW && !isChoppable) return true; 
+        // 1. Jika Pasta (isChoppable = false) -> Bisa dimasak dari RAW
+        if (!isChoppable && state == IngredientState.RAW) return true;
         
+        // 2. Jika Bahan Lain (Tomato, Beef, dll) -> Harus CHOPPED dulu baru bisa dimasak
+        if (isChoppable && state == IngredientState.CHOPPED) return true;
+
         return false;
     }
 
@@ -50,28 +48,15 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
         }
     }
     
-    // --- LOGIC PLATING ---
     @Override
     public boolean canBePlacedOnPlate() {
-        // Yang gosong gak boleh disajikan
         return state != IngredientState.BURNED;
     }
 
     @Override
-    public IngredientState getState() {
-        return state;
-    }
-
-    public void burn() {
-        this.state = IngredientState.BURNED;
-    }
-
-    public void setState(IngredientState state) {
-        this.state = state;
-    }
-
+    public IngredientState getState() { return state; }
+    public void burn() { this.state = IngredientState.BURNED; }
+    public void setState(IngredientState state) { this.state = state; }
     @Override
-    public String toString() {
-        return name + " (" + state + ")";
-    }
+    public String toString() { return name + " (" + state + ")"; }
 }

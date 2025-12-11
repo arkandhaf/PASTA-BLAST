@@ -7,11 +7,11 @@ public class KeyHandler implements KeyListener {
 
     GamePanel gp;
 
-    // Kontrol Gerak (WASD)
+    // KONTROL UMUM (WASD) - Dipakai oleh chef manapun yang sedang aktif
     public boolean upPressed, downPressed, leftPressed, rightPressed;
-    // Kontrol Aksi
     public boolean interactPressed, dashPressed;
-    // Kontrol Swap
+    
+    // TOMBOL SWAP
     public boolean turnSwapPressed = false; 
 
     public KeyHandler(GamePanel gp) {
@@ -30,22 +30,22 @@ public class KeyHandler implements KeyListener {
         }
         else if (gp.gameState == gp.playState) {
             
-            // --- SWAP PLAYER (TAB atau ENTER) ---
+            // --- SWAP PLAYER (TAB / ENTER) ---
             if (code == KeyEvent.VK_TAB || code == KeyEvent.VK_ENTER) {
                 turnSwapPressed = true;
             }
 
-            // --- MOVEMENT (WASD) ---
+            // --- GERAK (WASD) ---
             if (code == KeyEvent.VK_W) upPressed = true;
             if (code == KeyEvent.VK_S) downPressed = true;
             if (code == KeyEvent.VK_A) leftPressed = true;
             if (code == KeyEvent.VK_D) rightPressed = true;
             
-            // --- ACTION (SPASI & SHIFT) ---
-            if (code == KeyEvent.VK_SPACE) interactPressed = true;
-            if (code == KeyEvent.VK_SHIFT) dashPressed = true;
+            // --- AKSI ---
+            if (code == KeyEvent.VK_SPACE) interactPressed = true; // Spasi
+            if (code == KeyEvent.VK_SHIFT) dashPressed = true;     // Shift (Lari)
 
-            // Pause
+            // PAUSE
             if (code == KeyEvent.VK_P) gp.gameState = gp.pauseState;
         }
         else if (gp.gameState == gp.pauseState) {

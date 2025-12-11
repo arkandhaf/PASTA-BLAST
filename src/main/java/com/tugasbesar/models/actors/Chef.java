@@ -22,7 +22,11 @@ public class Chef extends Entity {
         this.name = name;
         this.playerID = playerID;
         
-        this.solidArea = new Rectangle(8, 16, 32, 32); 
+        // Hitbox kecil biar enak
+        int hitSize = gp.tileSize / 2;
+        int hitPad = gp.tileSize / 4;
+        
+        this.solidArea = new Rectangle(hitPad, hitPad, hitSize, hitSize); 
         this.solidAreaDefaultX = solidArea.x;
         this.solidAreaDefaultY = solidArea.y;
 
@@ -30,7 +34,7 @@ public class Chef extends Entity {
     }
 
     public void setDefaultValues() {
-        speed = 4;
+        speed = 4; // Scale 4 -> Speed 4 (Pas)
         direction = "down"; 
         this.heldItem = null; 
         this.isBusy = false;
@@ -47,14 +51,15 @@ public class Chef extends Entity {
 
     public void update(KeyHandler inputKeyH) {
         
-        // Jika inputKeyH null, berarti Chef ini sedang TIDAK AKTIF -> Diam
+        // [LOGIC SWAP]
+        // Jika inputKeyH NULL, artinya Chef ini SEDANG TIDAK AKTIF.
+        // Maka dia tidak melakukan apa-apa (Diam).
         if (inputKeyH == null) return; 
         
-        // Jika sedang sibuk (motong/cuci), tidak bisa gerak
         if (isBusy) return;
 
-        // --- BACA INPUT (Semua pakai WASD dari KeyHandler) ---
-        // Karena GamePanel hanya mengirim KeyHandler ke Chef yang aktif.
+        // [FIX] SEMUA CHEF PAKAI TOMBOL YANG SAMA (WASD)
+        // Karena GamePanel hanya mengirim inputKeyH ke Chef yang sedang AKTIF.
         boolean up = inputKeyH.upPressed;
         boolean down = inputKeyH.downPressed;
         boolean left = inputKeyH.leftPressed;
@@ -85,7 +90,8 @@ public class Chef extends Entity {
         
         if (interact) { 
             interact(); 
-            inputKeyH.interactPressed = false; // Reset tombol agar tidak spam
+            // Reset tombol di KeyHandler biar gak spam
+            inputKeyH.interactPressed = false; 
         }
     }
 
@@ -123,29 +129,34 @@ public class Chef extends Entity {
 
     @Override
     public void draw(Graphics2D g2) {
-        int drawSize = gp.tileSize - 8; 
-        int drawX = x + 4;
-        int drawY = y + 4;
+        // Visual Chef Kecil (Proporsional)
+        int padding = 8; 
+        int drawSize = gp.tileSize - (padding * 2); 
+        int drawX = x + padding;
+        int drawY = y + padding;
 
         g2.setColor(chefColor);
         g2.fillRect(drawX, drawY, drawSize, drawSize); 
         
         g2.setColor(Color.WHITE); 
-        if(direction.equals("up"))    g2.fillRect(drawX + 8, drawY + 2, 24, 8);
-        if(direction.equals("down"))  g2.fillRect(drawX + 8, drawY + 24, 24, 8);
-        if(direction.equals("left"))  g2.fillRect(drawX + 2, drawY + 8, 8, 24);
-        if(direction.equals("right")) g2.fillRect(drawX + 24, drawY + 8, 8, 24);
+        int eyeSize = 6;
+        if(direction.equals("up"))    g2.fillRect(drawX + drawSize/2 - 8, drawY + 2, 16, eyeSize);
+        if(direction.equals("down"))  g2.fillRect(drawX + drawSize/2 - 8, drawY + drawSize - 8, 16, eyeSize);
+        if(direction.equals("left"))  g2.fillRect(drawX + 2, drawY + drawSize/2 - 8, eyeSize, 16);
+        if(direction.equals("right")) g2.fillRect(drawX + drawSize - 8, drawY + drawSize/2 - 8, eyeSize, 16);
         
         g2.setColor(Color.WHITE);
         g2.setFont(g2.getFont().deriveFont(10F));
-        g2.drawString(name, drawX + 5, drawY - 2); 
+        int textLen = (int)g2.getFontMetrics().getStringBounds(name, g2).getWidth();
+        g2.drawString(name, drawX + (drawSize/2) - (textLen/2), drawY - 2); 
 
         if (heldItem != null) {
             g2.setColor(new Color(255, 215, 0)); 
-            g2.fillOval(drawX + 10, drawY - 12, 16, 16); 
+            g2.fillOval(drawX + (drawSize/2) - 8, drawY + (drawSize/2) - 8, 16, 16); 
         }
     }
 
+    // Getters & Setters
     public String getName() { return name; }
     public Item getHeldItem() { return heldItem; }
     public void setHeldItem(Item item) { this.heldItem = item; }

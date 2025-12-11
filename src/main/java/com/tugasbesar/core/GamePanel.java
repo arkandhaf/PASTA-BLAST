@@ -14,15 +14,19 @@ import com.tugasbesar.models.manager.OrderManager;
 
 public class GamePanel extends JPanel implements Runnable {
 
+    // --- SCREEN SETTINGS (RESET KE STANDARD) ---
     final int originalTileSize = 16;
-    final int scale = 3; 
+    final int scale = 3; // 48px (Ukuran Paling Aman & Stabil)
     public final int tileSize = originalTileSize * scale; 
     
+    // UKURAN MAP ASLI (14x10)
     public final int maxScreenCol = 14; 
     public final int maxScreenRow = 10;
+    
     public final int screenWidth = tileSize * maxScreenCol; 
     public final int screenHeight = tileSize * maxScreenRow; 
 
+    // --- SYSTEM ---
     int FPS = 60;
     Thread gameThread;
     
@@ -42,8 +46,7 @@ public class GamePanel extends JPanel implements Runnable {
     public boolean messageOn = false;
     public int messageCounter = 0;
 
-    // --- ACTORS ---
-    public int activePlayerID = 1; // 1 = Merah, 2 = Biru
+    public int activePlayerID = 1;
     public Chef chef1;
     public Chef chef2;
     public Station station[] = new Station[200]; 
@@ -61,9 +64,11 @@ public class GamePanel extends JPanel implements Runnable {
         chef1 = new Chef(this, keyH, "P1", 1);
         chef2 = new Chef(this, keyH, "P2", 2); 
         
-        // Posisi Awal (Kiri & Kanan)
+        // [FIX SPAWN POINT]
+        // P1 di Kiri (2, 2)
+        // P2 di Kanan (10, 2) -> Koordinat 10 pasti aman di dalam map 14 kolom
         chef1.setDefaultValues(2, 2); 
-        chef2.setDefaultValues(12, 2); 
+        chef2.setDefaultValues(10, 2); 
 
         gameState = playState; 
     }
@@ -113,16 +118,11 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void update() {
         if (gameState == playState) {
-            
-            // --- LOGIC SWAP (GANTI PEMAIN) ---
             if (keyH.turnSwapPressed) {
                 activePlayerID = (activePlayerID == 1) ? 2 : 1;
                 keyH.turnSwapPressed = false; 
-                System.out.println("🔄 SWAP! Active Player: P" + activePlayerID);
             }
             
-            // --- UPDATE HANYA PLAYER AKTIF ---
-            // Chef yang aktif dapat input (keyH), yang tidak aktif dapat (null)
             if (activePlayerID == 1) {
                 chef1.update(keyH); 
                 chef2.update(null); 
@@ -143,21 +143,30 @@ public class GamePanel extends JPanel implements Runnable {
         Graphics2D g2 = (Graphics2D) g;
 
         if (gameState == titleState) {
-            drawCenteredText(g2, "PASTA NIMONS COOKED", 40, -40);
-            drawCenteredText(g2, "PRESS ENTER TO START", 20, 40);
+            drawCenteredText(g2, "PASTA NIMONS COOKED", 30, -30);
+            drawCenteredText(g2, "PRESS ENTER TO START", 20, 30);
         } else {
+            // 1. Map
             if (mapParser != null) mapParser.draw(g2); 
             for (int i = 0; i < station.length; i++) {
                 if (station[i] != null) station[i].draw(g2);
             }
 
+            // 2. Chef
             chef1.draw(g2);
             chef2.draw(g2);
             
+            // 3. UI (Sederhana di pojok kiri atas)
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, 25)); 
-            g2.drawString("TIME: " + gameTime, 20, 40); 
+            g2.setFont(new Font("Arial", Font.BOLD, 20)); 
+            g2.drawString("TIME: " + gameTime, 20, 30); 
             
+            // Order List (Digambar di bawah Timer)
+            if (orderManager != null) {
+                orderManager.draw(g2, 20, 50); 
+            }
+
+            // Message
             if (messageOn) {
                 g2.setFont(new Font("Arial", Font.BOLD, 30));
                 g2.setColor(Color.YELLOW);
@@ -166,11 +175,11 @@ public class GamePanel extends JPanel implements Runnable {
                 if (messageCounter > 120) { messageCounter = 0; messageOn = false; }
             }
 
-            // --- INDIKATOR SIAPA YANG AKTIF ---
+            // Indicator
             Chef activeChef = (activePlayerID == 1) ? chef1 : chef2;
             g2.setColor(Color.YELLOW);
-            g2.setFont(new Font("Arial", Font.BOLD, 12)); 
-            g2.drawString("▼ YOU", activeChef.x + 8, activeChef.y - 10);
+            g2.setFont(new Font("Arial", Font.BOLD, 10)); 
+            g2.drawString("▼", activeChef.x + 20, activeChef.y - 5);
             
             if(gameState == pauseState) drawOverlay(g2, "PAUSED");
             if (gameState == gameOverState) drawOverlay(g2, "GAME OVER");
@@ -182,7 +191,7 @@ public class GamePanel extends JPanel implements Runnable {
         g2.setColor(new Color(0,0,0,150));
         g2.fillRect(0, 0, screenWidth, screenHeight);
         g2.setColor(Color.WHITE);
-        drawCenteredText(g2, text, 50, 0);
+        drawCenteredText(g2, text, 40, 0);
     }
     
     private void drawCenteredText(Graphics2D g2, String text, int size, int yOffset) {
