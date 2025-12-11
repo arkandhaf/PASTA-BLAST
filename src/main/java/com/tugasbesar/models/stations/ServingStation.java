@@ -4,6 +4,7 @@ import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
 import com.tugasbesar.models.item.Dish; 
 import com.tugasbesar.models.interfaces.Processable;
+import com.tugasbesar.core.GamePanel;
 
 // ASUMSI: Import OrderManager dan ScoreManager (jika ada) sudah disiapkan
 import com.tugasbesar.models.manager.OrderManager; 
@@ -48,7 +49,7 @@ public class ServingStation extends Station {
 
         
         // Cek ke OrderManager apakah Dish ini cocok dengan salah satu pesanan aktif
-        boolean isCorrectOrder = OrderManager.getInstance().findAndCompleteOrder(dish);
+        boolean isCorrectOrder = OrderManager.getInstance().checkOrder(dish);
         
         if (isCorrectOrder) {
             System.out.println("🎉 >>> [Serving] Disajikan: " + dish.getRecipeName() + " — Pesanan Tepat! Skor bertambah.");
@@ -60,12 +61,10 @@ public class ServingStation extends Station {
     
 
 
+        // Clear plate and return to chef
         plate.markDirty();
-    
-        if (plateStorageRef != null) {
-            plateStorageRef.addDirtyPlateFromServing(plate);
-            System.out.println("[Serving] Piring kotor kembali ke Storage.");
-        }
+        plate.clearContents();
+        System.out.println("[Serving] Piring kotor dikembalikan ke Chef.");
 
         // Kosongkan tangan Chef
         chef.setHeldItem(null);
