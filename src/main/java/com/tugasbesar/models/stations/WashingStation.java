@@ -3,22 +3,22 @@ package com.tugasbesar.models.stations;
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
 import java.util.Stack;
+import java.awt.Graphics2D;
+import java.awt.Color;
 
 public class WashingStation extends Station {
 
-    // Dua Bagian: Input (Kotor) dan Output (Bersih/Rak)
+    // Tumpukan Piring
     private Stack<Plate> dirtyPlates;
     private Stack<Plate> cleanPlates;
 
     // Logic Cuci
     private boolean isWashing = false;
-    private int washProgress = 0; // 0 - 100
-    private final int WASH_SPEED = 20; // 5 Tick selesai
+    private int washProgress = 0; 
+    private final int WASH_SPEED = 2; // Kecepatan cuci per frame
 
     public WashingStation(int x, int y) {
-        // x, y, Nama, Symbol "W"
-        super(x, y, "Washing Station", "W");
-        
+        super(x, y, "Sink", "W");
         this.dirtyPlates = new Stack<>();
         this.cleanPlates = new Stack<>();
     }
@@ -26,101 +26,95 @@ public class WashingStation extends Station {
     @Override
     public void interact(Chef chef) {
         
-        // ==========================================
-        // 1. CHEF BAWA PIRING KOTOR (TARUH)
-        // ==========================================
+        // 1. TARUH PIRING KOTOR (Input)
         if (chef.hasItem() && chef.getHeldItem() instanceof Plate) {
             Plate p = (Plate) chef.getHeldItem();
             
-            // Cek apakah piring ada isinya (kotor)
-            if (!p.getContents().isEmpty()) {
+            // Piring dianggap kotor jika statusnya dirty ATAU masih ada isinya (sisa makanan)
+            if (p.isDirty() || !p.getContents().isEmpty()) {
+                p.clearContents(); // Kosongkan sisa makanan sebelum ditumpuk
                 dirtyPlates.push(p);
-                chef.setHeldItem(null); // Tangan kosong
-                System.out.println("[Washing] " + chef.getName() + " menumpuk piring kotor. (Total: " + dirtyPlates.size() + ")");
+                chef.setHeldItem(null); // Piring pindah ke tumpukan, tangan kosong
+                System.out.println("💧 [Washing] Menaruh piring kotor. (Antrian: " + dirtyPlates.size() + ")");
+                return;
             } else {
-                System.out.println("[!] Piring ini sudah kosong/bersih. Taruh di Plate Storage.");
+                System.out.println("⚠️ [Washing] Piring ini sudah bersih!");
             }
+        }
+
+        // 2. AMBIL PIRING BERSIH (Output)
+        // Syarat: Tangan kosong & Ada piring bersih
+        if (!chef.hasItem() && !cleanPlates.isEmpty()) {
+            chef.setHeldItem(cleanPlates.pop());
+            System.out.println("✨ [Washing] Mengambil piring bersih.");
             return;
         }
 
-        // ==========================================
-        // 2. CHEF TANGAN KOSONG
-        // ==========================================
-        if (!chef.hasItem()) {
-            
-            // PRIORITAS A: Ambil Piring Bersih (Kalau ada)
-            // Syarat: Ada piring bersih DAN (Tidak sedang mencuci ATAU stack kotor kosong)
-            // Logic: Kalau ada piring bersih, ambil dulu.
-            if (!cleanPlates.isEmpty()) {
-                chef.setHeldItem(cleanPlates.pop());
-                System.out.println("[Washing] " + chef.getName() + " mengambil piring bersih dari rak.");
-                return;
-            }
-
-            // PRIORITAS B: Mulai / Lanjut Mencuci
-            if (!dirtyPlates.isEmpty()) {
-                isWashing = true; // Set status washing
-                System.out.println("[Washing] " + chef.getName() + " mulai menggosok piring...");
-            } else {
-                System.out.println("[Washing] Tidak ada piring kotor untuk dicuci.");
-            }
+        // 3. MULAI MENCUCI (Proses)
+        // Syarat: Tangan kosong & Ada piring kotor & Belum mulai nyuci
+        if (!chef.hasItem() && !dirtyPlates.isEmpty()) {
+            this.chefAtStation = chef; // Kunci Chef di station ini
+            chef.setBusy(true);        // Chef tidak bisa gerak
+            isWashing = true;
+            System.out.println("🧼 [Washing] Mulai mencuci...");
         }
     }
 
     @Override
     public void update() {
-        // 1. SYARAT PAUSE: Chef harus ada di Station
-        if (chefAtStation == null) {
-            // Kalau Chef pergi, kita tidak ubah 'isWashing' jadi false,
-            // tapi kita return (Pause Progress).
-            return; 
+        // Hanya update kalau ada Chef yang sedang aktif mencuci
+        if (chefAtStation == null || !isWashing) return;
+
+        // Cek kalau input habis tiba-tiba
+        if (dirtyPlates.isEmpty()) {
+            stopWashing();
+            return;
         }
 
-        // 2. SYARAT CUCI: Status Washing True & Ada Piring Kotor
-        if (isWashing && !dirtyPlates.isEmpty()) {
+        washProgress += WASH_SPEED;
+
+        // Selesai 1 Piring (Progress 100%)
+        if (washProgress >= 100) {
+            Plate p = dirtyPlates.pop();
+            p.clean(); // Ubah status jadi bersih (method di Plate.java)
+            cleanPlates.push(p);
             
-            washProgress += WASH_SPEED;
-
-            // Visualisasi Bar
-            String chefName = chefAtStation.getName();
-            System.out.println("   [" + chefName + "] " + getProgressBar(20) + " Mencuci...");
-
-            // 3. SELESAI CUCI 1 PIRING
-            if (washProgress >= 100) {
-                // Ambil dari kotor
-                Plate donePlate = dirtyPlates.pop();
-                
-                // Bersihkan
-                donePlate.getContents().clear(); 
-                
-                // Masukkan ke rak bersih
-                cleanPlates.push(donePlate);
-                
-                // Reset Progress
-                washProgress = 0;
-                System.out.println(">>> [SELESAI] 1 Piring bersih! Masuk ke rak. (Sisa kotor: " + dirtyPlates.size() + ")");
-
-                // Cek apakah masih ada kotoran?
-                if (dirtyPlates.isEmpty()) {
-                    isWashing = false; // Berhenti otomatis kalau habis
-                    System.out.println("[Washing] Semua piring sudah dicuci.");
-                }
+            washProgress = 0;
+            System.out.println("✨ [Washing] 1 Piring Selesai! (Bersih: " + cleanPlates.size() + ")");
+            
+            // Kalau antrian habis, stop otomatis
+            if (dirtyPlates.isEmpty()) {
+                stopWashing();
             }
         }
     }
-
-    // Helper Visual (Progress Bar Air)
-    public String getProgressBar(int width) {
-        int percent = Math.min(100, washProgress);
-        int filled = (int) Math.round((percent / 100.0) * width);
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        for (int i = 0; i < width; i++) sb.append(i < filled ? '~' : ' ');
-        sb.append("] ").append(percent).append('%');
-        return sb.toString();
-    }
     
-    // Getter untuk Debugging
-    public int getDirtyCount() { return dirtyPlates.size(); }
-    public int getCleanCount() { return cleanPlates.size(); }
+    // Helper untuk menghentikan proses cuci
+    private void stopWashing() {
+        isWashing = false;
+        washProgress = 0;
+        if (chefAtStation != null) {
+            chefAtStation.setBusy(false); // Lepaskan Chef biar bisa gerak lagi
+            chefAtStation = null;
+        }
+        System.out.println("🛑 [Washing] Selesai mencuci.");
+    }
+
+    @Override
+    public void draw(Graphics2D g2) {
+        super.draw(g2); // Gambar kotak dasar
+        
+        // Visualisasi Progress Bar Biru
+        if (isWashing) {
+            g2.setColor(Color.BLUE);
+            int barWidth = (int)(48 * (washProgress/100.0));
+            g2.fillRect(posX * 48, posY * 48 - 10, barWidth, 5);
+        }
+        
+        // Indikator Tumpukan Teks
+        g2.setColor(Color.WHITE);
+        g2.setFont(g2.getFont().deriveFont(10f)); // Font kecil
+        g2.drawString("Dirty: " + dirtyPlates.size(), posX * 48 + 2, posY * 48 + 15);
+        g2.drawString("Clean: " + cleanPlates.size(), posX * 48 + 2, posY * 48 + 30);
+    }
 }

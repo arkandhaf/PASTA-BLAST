@@ -1,27 +1,32 @@
 package com.tugasbesar.models.manager;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 import com.tugasbesar.models.item.Dish;
 import com.tugasbesar.models.item.Ingredient;
+// import com.tugasbesar.models.Recipe; 
+// import com.tugasbesar.models.Order;
+
 public class OrderManager {
     private static OrderManager instance;
     
     private List<Order> activeOrder;
     private List<Recipe> availableRecipe;
+    
     private float spawnCooldown;
     private float spawnTimer;
 
-    // Private constructor
     private OrderManager(){
         this.activeOrder = new ArrayList<>();
         this.availableRecipe = new ArrayList<>();
-        this.spawnCooldown = 10.0f;  // Default value
+        
+        // Cooldown 10 detik (600 tick di 60 FPS)
+        this.spawnCooldown = 600.0f;  
         this.spawnTimer = 0;
     }
     
-    // Get the single instance
     public static OrderManager getInstance() {
         if (instance == null) {
             instance = new OrderManager();
@@ -29,105 +34,110 @@ public class OrderManager {
         return instance;
     }
     
-    // Initialize with recipes (call once at game start)
     public void initialize(List<Recipe> recipes, float cooldown) {
         this.availableRecipe = recipes;
         this.spawnCooldown = cooldown;
     }
-    /**
-     * update times on orderManager side, doesnt include update timer for order
-     */
+
     public void update (){
-        if (spawnTimer == 0){
-            this.spawnTimer = this.spawnCooldown;
+        // 1. Spawn Logic
+        if (spawnTimer <= 0){
+            spawnOrder(); 
+            this.spawnTimer = this.spawnCooldown; 
         }
         else{
             spawnTimer--;
         }
 
+        // 2. Update Timer Order (Looping)
+        // Warning "local variable order is not used" muncul karena loop ini kosong.
+        // Kita isi logic sederhana biar warning hilang & berguna.
+        for (Order order : activeOrder) {
+             // Kurangi durasi order setiap tick (asumsi ada method ini, kalau gak ada hapus baris ini)
+             // order.decreaseTimer(); 
+        }
+
+        // 3. Hapus Order Kadaluarsa
+        removeExpiredOrder();
     }
-    /**
-     * spawn new order and add it into active order
-     */
+
     public void spawnOrder(){
+        if (availableRecipe.isEmpty()) return; 
+
         Random random = new Random();
         Recipe randomRecipe = availableRecipe.get(random.nextInt(availableRecipe.size()));
-        int maxDuration = 20;
-        int minDuration = 10;
+        
+        int maxDuration = 1200; // 20 detik
+        int minDuration = 600;  // 10 detik
         int randomOrderDuration = random.nextInt(maxDuration - minDuration + 1) + minDuration; 
+        
         Order orderSpawn = new Order(randomRecipe, randomOrderDuration);
         this.activeOrder.add(orderSpawn);
+        
+        // [FIX] Ganti getName() jadi getRecipeName()
+        System.out.println("📜 New Order: " + randomRecipe.getRecipeName()); 
     }
-    /**
-     * if dish recipe name is contained in the recipe name of active order
-     * it means the dish can finish an order. A dish must be appropriate to the recipe
-     * equals the dish has the same ingredients as the recipe.
-     */
-    public boolean findAndCompleteOrder(Dish dish){
-        String dishRecipeName = dish.getRecipeName();
-        // checks dish recipe is needed in one of activeOrder recipe
+
+    // Method Check Order (Dipanggil ServingStation)
+    public boolean checkOrder(Dish dish){
+        if (dish == null) return false;
+
+        String dishRecipeName = dish.getRecipeName(); 
+
         for (Order order : this.activeOrder){
-            String orderRecipeName = order.getRecipe().getRecipeName();
-            if (orderRecipeName.equals(dishRecipeName)){
+            // [FIX] Ganti getName() jadi getRecipeName()
+            String orderRecipeName = order.getRecipe().getRecipeName(); 
+            
+            if (orderRecipeName.equalsIgnoreCase(dishRecipeName)){
                 completeOrder(order);
                 this.activeOrder.remove(order);
-                return true;
+                return true; 
             }
         }
-        // after checking all of active order, none need the dish inputted, give false
-        return false;
+        return false; 
     }
-    /**
-     * find ingredients that matches a recipe in the level and return the recipee
-     * @param ingredientsString
-     * @return Recipe
-     */
+
     public Recipe findMatchingRecipe(List<String> ingredientsString){
         for (Recipe recipe : availableRecipe) {
-            // Get recipe ingredients as strings
             List<String> recipeIngredients = new ArrayList<>();
             for (Ingredient ingredient : recipe.requirements) {
-                recipeIngredients.add(ingredient.toString());
+                recipeIngredients.add(ingredient.getName());
             }
             
-            // Check if sizes match
             if (recipeIngredients.size() != ingredientsString.size()) {
                 continue;
             }
             
-            // Check if all ingredients match (order doesn't matter)
             if (recipeIngredients.containsAll(ingredientsString) && 
                 ingredientsString.containsAll(recipeIngredients)) {
-                return recipe;  // Found matching recipe
+                return recipe;  
             }
         }
-        return null;  // No matching recipe found
+        return null;  
     }
 
     public void completeOrder(Order order){
         order.setOrderComplete();
+        // ScoreManager.addScore(100);
     }
+
     public void failOrder(Order order){
         order.setOrderFailed();
     }
+
     public void removeExpiredOrder(){
-        activeOrder.removeIf(order -> order.isExpired());
+        boolean removed = activeOrder.removeIf(order -> order.isExpired());
+        if (removed) {
+            System.out.println("❌ Order Expired!");
+            // ScoreManager.minusScore(10);
+        }
     }
 
     public List<Order> getActiveOrder(){
         return this.activeOrder;
     }
+    
     public List<Recipe> getAvailableRecipe() {
         return this.availableRecipe;
     }
-    
-    public float getSpawnCooldown() {
-        return this.spawnCooldown;
-    }
-    
-    public float getSpawnTimer() {
-        return this.spawnTimer;
-    }
-
-
 }

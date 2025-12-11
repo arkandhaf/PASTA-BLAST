@@ -7,7 +7,7 @@ public class IngredientFactory {
     }
 
     public static Ingredient createPasta() {
-        // pasta gabisa dipotong (langsung rebus)
+        // pasta direbus doang
         return new Ingredient("Pasta", false); 
     }
 
@@ -23,5 +23,4 @@ public class IngredientFactory {
         return new Ingredient("Shrimp", true);
     }
 
-    
 }

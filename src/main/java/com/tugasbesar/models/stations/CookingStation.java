@@ -1,84 +1,121 @@
 package com.tugasbesar.models.stations;
 
 import com.tugasbesar.models.actors.Chef;
-import com.tugasbesar.models.abstracts.Item; 
-
-import com.tugasbesar.models.interfaces.Cookable; 
-import com.tugasbesar.models.interfaces.Processable; 
-
+import com.tugasbesar.models.abstracts.Item;
+import com.tugasbesar.models.item.Ingredient;
+import com.tugasbesar.models.enums.IngredientState;
+import com.tugasbesar.models.interfaces.Processable;
+import com.tugasbesar.models.item.kitchen_utensil.Plate;
 import com.tugasbesar.models.item.kitchen_utensil.BaseCookingDevice;
-import com.tugasbesar.models.enums.IngredientState; 
+import java.awt.Color;
+import java.awt.Graphics2D;
 
 public class CookingStation extends Station {
 
-    public CookingStation(int x, int y, BaseCookingDevice startingUtensil) {
-    
-        super(x, y, "Stove", "R"); 
-        this.itemOnStation = startingUtensil; 
+    private boolean isCooking = false;
+    private int cookProgress = 0;
+    private final int MAX_PROGRESS = 200; 
+    private final int COOK_SPEED = 1;
+
+    public CookingStation(int x, int y) {
+        super(x, y, "Stove", "K");
     }
 
     @Override
     public void interact(Chef chef) {
         Item hand = chef.getHeldItem();
-        Item tableItem = itemOnStation;
 
-    
-        if (tableItem instanceof BaseCookingDevice) {
-            BaseCookingDevice utensil = (BaseCookingDevice) tableItem;
-
-     
-            // cek apakah item di tangan Cookable
-            if (chef.hasItem() && hand instanceof Cookable) { 
-                Cookable ingredient = (Cookable) hand;
-
-                
-                if (utensil.canAccept(ingredient)) { 
-                    utensil.addIngredient(ingredient);
-                    utensil.startCooking(); // auto cook 
-
-                    chef.setHeldItem(null);
-                    System.out.println("[Stove] " + ((Processable)ingredient).getName() + " masuk ke " + utensil.getName());
-                    return;
-                }
+        // -----------------------------------------------------------
+        // 1. PLATING LOGIC (Chef bawa Piring -> Ambil Masakan)
+        // -----------------------------------------------------------
+        if (hand instanceof Plate && !isEmpty()) {
+            if (isCooking) {
+                System.out.println("⚠️ Tunggu sampai matang!");
+                return;
             }
-            
-            //AMBIL HASIL MASAKAN (Matang atau Gosong)
-            // Chef tangan kosong mengambil hasil dari utensil di stove
-            if (!chef.hasItem() && !utensil.isEmpty()) {
-                
-            
-                Processable result = utensil.getContents().get(0); 
 
-                if (result.getState() == IngredientState.COOKED || result.getState() == IngredientState.BURNED) {
-                    
-                    // ambil item dari Utensil 
-                    Item takenItem = utensil.takeItem(); 
-                    chef.setHeldItem(takenItem);
-                    
-            
-                    System.out.println("[Stove] " + chef.getName() + " mengambil hasil masakan: " + result.getName() + " (" + result.getState() + ")");
+            Plate plate = (Plate) hand;
+            Item itemOnTable = itemOnStation;
+
+            if (itemOnTable instanceof Processable) {
+                Processable ingredient = (Processable) itemOnTable;
+                
+                // Masukkan ke piring
+                if (plate.canAccept(ingredient)) {
+                    Item takenItem = takeItem();
+                    plate.addIngredient((Processable) takenItem);
+                    cookProgress = 0; // Reset visual
+                    System.out.println("🍽️ [Stove] " + takenItem.getName() + " dimasukkan ke Piring.");
                     return;
                 }
             }
         }
-        
 
-        // 3. taruh Panci / angkat Panci / safety 
-        // safety: cegah taruh barang sembarangan di stove kosong (takda utensil)
-        if (isEmpty() && chef.hasItem() && !(chef.getHeldItem() instanceof BaseCookingDevice)) {
-            System.out.println("[!] Bahaya! Jangan taruh " + chef.getHeldItem().getName() + " di api.");
+        // -----------------------------------------------------------
+        // 2. TARUH ITEM (Bahan atau Panci)
+        // -----------------------------------------------------------
+        if (chef.hasItem() && isEmpty()) {
+            // Transit Alat
+            if (hand instanceof Plate || hand instanceof BaseCookingDevice) {
+                placeItem(hand);
+                chef.setHeldItem(null);
+                return;
+            }
+
+            // Masak Bahan
+            if (hand instanceof Ingredient) {
+                Ingredient ing = (Ingredient) hand;
+                if (ing.canBeCooked()) {
+                    placeItem(hand);
+                    chef.setHeldItem(null);
+                    
+                    isCooking = true; 
+                    cookProgress = 0;
+                    System.out.println("🔥 [Stove] Mulai memasak " + ing.getName());
+                } else {
+                    System.out.println("⚠️ Bahan ini tidak bisa dimasak.");
+                }
+            }
             return;
         }
 
-        // angkat / taruh Panci
-        defaultInteract(chef);
+        // -----------------------------------------------------------
+        // 3. AMBIL ITEM (Manual)
+        // -----------------------------------------------------------
+        if (!chef.hasItem() && !isEmpty()) {
+            if (isCooking) {
+                System.out.println("⚠️ Belum matang!");
+                return;
+            }
+            chef.setHeldItem(takeItem());
+            cookProgress = 0;
+            System.out.println("⬆️ [Stove] Mengambil item.");
+        }
     }
 
     @Override
     public void update() {
-        // auto-cook (timer jalan terus)
-        if (itemOnStation instanceof BaseCookingDevice) {
-            ((BaseCookingDevice) itemOnStation).processCookingTick();
+        if (isCooking && itemOnStation != null) {
+            cookProgress += COOK_SPEED;
+            if (cookProgress >= MAX_PROGRESS) finishCooking();
+        }
+    }
+
+    private void finishCooking() {
+        isCooking = false;
+        if (itemOnStation instanceof Ingredient) {
+            ((Ingredient) itemOnStation).cook(); 
+            System.out.println("✅ [Stove] Matang!");
+        }
+    }
+
+    @Override
+    public void draw(Graphics2D g2) {
+        super.draw(g2); 
+        if (cookProgress > 0) {
+            int width = (int) ((double)cookProgress / MAX_PROGRESS * 40);
+            g2.setColor(isCooking ? Color.RED : Color.GREEN);
+            g2.fillRect(posX * 48 + 4, posY * 48 - 10, width, 6);
         }
     }
 }

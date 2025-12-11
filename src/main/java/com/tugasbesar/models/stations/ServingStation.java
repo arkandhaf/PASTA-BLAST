@@ -11,31 +11,28 @@ import com.tugasbesar.models.manager.OrderManager;
 
 public class ServingStation extends Station {
 
-    private PlateStorage plateStorageRef;
+    private GamePanel gp; 
 
-    public ServingStation(int x, int y, PlateStorage storage) {
+    public ServingStation(int x, int y, GamePanel gp) {
         super(x, y, "Serving Counter", "S");
-        this.plateStorageRef = storage;
+        this.gp = gp;
     }
 
     @Override
     public void interact(Chef chef) {
-        // 1. Validasi Awal (Chef bawa Plate)
+        // Harus bawa piring
         if (!chef.hasItem() || !(chef.getHeldItem() instanceof Plate)) {
-            System.out.println("[Serving] Bawa piring berisi makanan ke sini!");
+            System.out.println("⚠️ Bawa piring berisi makanan ke sini!");
+            if(gp != null) gp.showMessage("Butuh Piring!");
             return;
         }
 
         Plate plate = (Plate) chef.getHeldItem();
 
-        // 2. Validasi Piring
-        if (plate.getContents().isEmpty()) {
-            System.out.println("[Serving] Jangan sajikan piring kosong! Pelanggan tidak senang.");
-            return;
-        }
-
-        if (plate.isDirty()) {
-            System.out.println("[Serving] Piring ini kotor (sisa). Silakan cuci dulu!");
+        // Piring harus ada isinya (makanan jadi)
+        if (plate.getContents().isEmpty() || plate.isDirty()) {
+            System.out.println("⚠️ Piring kosong atau kotor!");
+            if(gp != null) gp.showMessage("Piring Kosong!");
             return;
         }
         
@@ -73,4 +70,4 @@ public class ServingStation extends Station {
         // Kosongkan tangan Chef
         chef.setHeldItem(null);
     }
-}
+}   

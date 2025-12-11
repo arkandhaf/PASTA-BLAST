@@ -3,118 +3,102 @@ package com.tugasbesar.models.stations;
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.abstracts.Item;
 
+// --- [WAJIB ADA BIAR GAK ERROR] ---
+import java.awt.Graphics2D;
+import java.awt.Color;
+import java.awt.Font;
+// ----------------------------------
+
 public abstract class Station {
     
     protected int posX;
     protected int posY;
-    protected String name;   // nama station
-    protected String symbol; // inisialisasi nama station
+    protected String name;   
+    protected String symbol; 
 
-    protected Item itemOnStation;   // item yang ada di meja
-    protected Chef chefAtStation;   // chef yang sedang berdiri di stationnya
-
+    protected Item itemOnStation;   
     
+    // [PENTING] Variabel ini dikembalikan biar CuttingStation gak error
+    protected Chef chefAtStation;   
+
     public Station(int x, int y, String name, String symbol) {
         this.posX = x;
         this.posY = y;
         this.name = name;
         this.symbol = symbol;
         this.itemOnStation = null;
+        this.chefAtStation = null;
     }
 
-
-    // dipanggil ketika menekan tombol Interaksi (Space/E)
     public abstract void interact(Chef chef);
 
+    public void update() {}
 
-    
-    // dipanggil main Loop setiap detik/tick
-    public void update() {
-        // Hanya di-override oleh station yang butuh waktu (Cooking, Cutting, Washing)
-    }
-
-
-    //helper method
-    //taruh item ke meja, return true jika berhasil.
+    // --- Helper Methods ---
     public boolean placeItem(Item item) {
-        if (itemOnStation != null) {
-            return false; // gagal, meja penuh
-        }
+        if (itemOnStation != null) return false;
         this.itemOnStation = item;
         return true;
     }
 
-    // ambil item dari meja + return itemnya.
     public Item takeItem() {
         Item temp = itemOnStation;
         this.itemOnStation = null;
         return temp;
     }
+
+    public boolean isEmpty() { return itemOnStation == null; }
     
+    // Method buat set Chef yang lagi aktif di station (dipake CuttingStation)
+    public void setChef(Chef chef) { this.chefAtStation = chef; }
+    public Chef getChef() { return chefAtStation; }
 
-    public boolean isEmpty() {
-        return itemOnStation == null;
-    }
-
-
-    // dipanggil main saat chef bergerak masuk/keluar koordinat ini
-    public void setChef(Chef chef) {
-        this.chefAtStation = chef;
-    }
-
-    public void removeChef() {
-        this.chefAtStation = null;
-    }
-
-
-    
-
+    // --- Default Interact ---
     protected void defaultInteract(Chef chef) {
         Item hand = chef.getHeldItem();
 
-        // taruh item(meja kosong + chef megang)
         if (hand != null && isEmpty()) {
             placeItem(hand);
             chef.setHeldItem(null);
-            System.out.println("[Action] Menaruh " + itemOnStation.getName() + " di " + name);
+            System.out.println("⬇️ [Action] Menaruh " + itemOnStation.getName() + " di " + name);
         }
-        // ambil (meja ada item + chef tangan kosong)
         else if (hand == null && !isEmpty()) {
             chef.setHeldItem(takeItem());
-            System.out.println("[Action] Mengambil " + chef.getHeldItem().getName() + " dari " + name);
+            System.out.println("⬆️ [Action] Mengambil " + chef.getHeldItem().getName() + " dari " + name);
         }
+    }
+
+    // --- Visualisasi ---
+    public void draw(Graphics2D g2) {
+        int tileSize = 48; 
+        int screenX = posX * tileSize;
+        int screenY = posY * tileSize;
+
+        g2.setColor(Color.DARK_GRAY);
+        g2.fillRect(screenX, screenY, tileSize, tileSize);
         
-        else {
-            
+        g2.setColor(Color.BLACK);
+        g2.drawRect(screenX, screenY, tileSize, tileSize);
+
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Arial", Font.BOLD, 20));
+        g2.drawString(symbol, screenX + 15, screenY + 30);
+
+        if (itemOnStation != null) {
+            g2.setColor(Color.YELLOW); 
+            g2.fillOval(screenX + 12, screenY + 12, 24, 24);
         }
-    }
-
-    //untuk map bro 
-    public String getName() { 
-        return name; 
-    }
-    public String getSymbol() { 
-        return symbol; 
-    }
-    public Item getItemOnStation() { 
-        return itemOnStation; 
-    }
-    public int getPosX() { 
-        return posX; 
-    }
-    public int getPosY() { 
-        return posY; 
-    }
-
-    // untuk print info status meja
-    public String getStatusDisplay() {
-        return String.format("[%s] %s (%d,%d) | Isi: %s", 
-            symbol, name, posX, posY, 
-            isEmpty() ? "Kosong" : itemOnStation.getName());
     }
     
+    // Getters
+    public String getName() { return name; }
+    public String getSymbol() { return symbol; }
+    public Item getItemOnStation() { return itemOnStation; }
+    public int getPosX() { return posX; }
+    public int getPosY() { return posY; }
+
     @Override
     public String toString() {
-        return getStatusDisplay();
+        return String.format("[%s] %s (%d,%d)", symbol, name, posX, posY);
     }
 }
