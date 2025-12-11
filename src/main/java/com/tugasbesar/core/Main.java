@@ -9,7 +9,7 @@ public class Main {
         JFrame window = new JFrame();
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);
-        window.setTitle("Pasta NimonsCooked - Milestone 2");
+        window.setTitle("PASTA - BLAST");
 
         GamePanel gamePanel = new GamePanel();
         window.add(gamePanel);
@@ -26,4 +26,4 @@ public class Main {
 
         gamePanel.startGameThread();
     }
-}
+} 

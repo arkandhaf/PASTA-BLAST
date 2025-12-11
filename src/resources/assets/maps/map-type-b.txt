@@ -1,10 +1,10 @@
 AARRAAXXXXXXXX
+J....AXXX....W
 I....AXXX....W
-I....AXXX....W
-I.V..AXXX....A
+B.V..AXXX....A
 A....XXXX....R
-P....XXXXC...R
-S....XXXXC.V.I
-S....XXXA....I
-A...........T.
+P....XXXC....R
+S....XXXC..V.F
+S....XXXA....L
+A............T
 XXXXXXXXXXXXXX

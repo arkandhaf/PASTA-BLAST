@@ -6,8 +6,6 @@ import com.tugasbesar.models.interfaces.Choppable;
 import com.tugasbesar.models.interfaces.Cookable;
 import com.tugasbesar.models.interfaces.Placeable;
 
-
-
 public class Ingredient extends Item implements Choppable, Cookable, Placeable {
     
     private IngredientState state;
@@ -31,9 +29,16 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
         }
     }
 
+    // --- [FIX] LOGIC MASAK SESUAI KRITERIA ---
     @Override
     public boolean canBeCooked() {
-        return state == IngredientState.RAW || state == IngredientState.CHOPPED;
+        // 1. Jika Pasta (isChoppable = false) -> Bisa dimasak dari RAW
+        if (!isChoppable && state == IngredientState.RAW) return true;
+        
+        // 2. Jika Bahan Lain (Tomato, Beef, dll) -> Harus CHOPPED dulu baru bisa dimasak
+        if (isChoppable && state == IngredientState.CHOPPED) return true;
+
+        return false;
     }
 
     @Override
@@ -43,29 +48,15 @@ public class Ingredient extends Item implements Choppable, Cookable, Placeable {
         }
     }
     
-    
     @Override
     public boolean canBePlacedOnPlate() {
-        //cuman yang gak gosong yang boleh ditaruh di piring
         return state != IngredientState.BURNED;
     }
 
     @Override
-    public IngredientState getState() {
-        return state;
-    }
-
-    
-    public void burn() {
-        this.state = IngredientState.BURNED;
-    }
-
-    public void setState(IngredientState state) {
-        this.state = state;
-    }
-
+    public IngredientState getState() { return state; }
+    public void burn() { this.state = IngredientState.BURNED; }
+    public void setState(IngredientState state) { this.state = state; }
     @Override
-    public String toString() {
-        return name + " (" + state + ")";
-    }
+    public String toString() { return name + " (" + state + ")"; }
 }

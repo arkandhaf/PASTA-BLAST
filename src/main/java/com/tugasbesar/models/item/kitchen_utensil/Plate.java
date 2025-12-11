@@ -1,85 +1,82 @@
 package com.tugasbesar.models.item.kitchen_utensil;
 
-import com.tugasbesar.models.abstracts.KitchenUtensil;
-import com.tugasbesar.models.interfaces.Processable; 
-import com.tugasbesar.models.interfaces.Placeable; 
+import com.tugasbesar.models.abstracts.Item;
+import com.tugasbesar.models.enums.IngredientState;
+import com.tugasbesar.models.interfaces.Processable;
+import com.tugasbesar.models.item.Ingredient;
+import com.tugasbesar.models.item.Dish;
 
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
-public class Plate extends KitchenUtensil {
+public class Plate extends Item {
 
+    private List<Processable> contents; 
     private boolean isDirty;
 
     public Plate() {
-        super("Plate"); 
-        this.isDirty = false; 
+        super("Plate");
+        this.contents = new ArrayList<>();
+        this.isDirty = false;
     }
 
-    @Override
-    public void addIngredient(Processable item) {
-        
-        if (canAccept(item)) {
-            super.addIngredient(item); 
-            System.out.println("[Plate] " + item.getName() + " diletakkan di piring.");
-        } 
-    }
-
-    @Override
     public boolean canAccept(Processable item) {
-        if (isDirty) {
-            System.out.println("[!] Piring kotor! Cuci dulu di Washing Station.");
+        if (isDirty) return false;
+        if (item instanceof Dish) return true;
+        if (item instanceof Ingredient) {
+            Ingredient ing = (Ingredient) item;
+            if (ing.getState() == IngredientState.COOKED) return true;
+            System.out.println("⚠️ [Plate] Menolak " + ing.getName() + " (Status: " + ing.getState() + ", Harusnya COOKED)");
             return false;
         }
-
-        if (!(item instanceof Placeable)) {
-            System.out.println("[!] Item ini tidak dapat diletakkan di piring.");
-            return false;
-        }
-        
-        Placeable placeableItem = (Placeable)item;
-        
-        if (!placeableItem.canBePlacedOnPlate()) {
-            System.out.println("[!] Item belum siap untuk diletakkan di piring (misal: mentah atau gosong).");
-            return false;
-        }
-        return true;
+        return false;
     }
 
-
-
-    public void wash() {
-        super.clearContents(); 
-        this.isDirty = false; 
-        System.out.println("[Plate] Piring bersih dan siap digunakan.");
+    public void addIngredient(Processable item) {
+        if (canAccept(item)) {
+            contents.add(item);
+            System.out.println("🍽️ [Plate] Ditambahkan: " + item.getName());
+        }
     }
 
-    public void markDirty() {
+    public boolean isDirty() { return isDirty; }
+    
+    public void markDirty() { 
         this.isDirty = true; 
-        System.out.println("[Plate] Piring ditandai kotor (masih ada sisa/kosong).");
+        this.contents.clear(); 
+    }
+    
+    public void clean() { 
+        this.isDirty = false; 
+        this.contents.clear();
     }
 
-    public boolean isClean() {
-        return !isDirty;
+    public void clearContents() {
+        this.contents.clear();
     }
 
-    public boolean isDirty() {
-        return isDirty;
-    }
+    public List<Processable> getContents() { return contents; }
+    
+    public boolean isEmpty() { return contents.isEmpty(); }
 
     public String getDishName() {
-        if (isDirty) return "Dirty Plate";
         if (contents.isEmpty()) return "Empty Plate";
-
-        return contents.stream()
-                .map(item -> item.getName())
-                .collect(Collectors.joining(" + "));
+        if (contents.get(0) instanceof Dish) return contents.get(0).getName();
+        return "Ingredients Mix";
     }
-
-    @Override
-    public String toString() {
-        if (isDirty) return "Plate (Dirty)";
-        if (contents.isEmpty()) return "Plate (Clean)";
-        
-        return "Plate [" + getDishName() + "]";
+    
+    // [PENTING BUAT DEBUG]
+    public String getContentsString() {
+        StringBuilder sb = new StringBuilder("[");
+        for (Processable p : contents) {
+            if (p instanceof Ingredient) {
+                Ingredient ing = (Ingredient) p;
+                sb.append(ing.getName()).append("(").append(ing.getState()).append("), ");
+            } else {
+                sb.append(p.getName()).append(", ");
+            }
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }

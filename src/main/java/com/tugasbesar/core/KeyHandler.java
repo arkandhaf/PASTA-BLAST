@@ -5,14 +5,15 @@ import java.awt.event.KeyListener;
 
 public class KeyHandler implements KeyListener {
 
-    GamePanel gp; // Variabel penampung
+    GamePanel gp;
 
+    // KONTROL UMUM (WASD) - Dipakai oleh chef manapun yang sedang aktif
     public boolean upPressed, downPressed, leftPressed, rightPressed;
-    public boolean interactPressed;
-    public boolean dashPressed;
+    public boolean interactPressed, dashPressed;
+    
+    // TOMBOL SWAP
     public boolean turnSwapPressed = false; 
 
-    // Constructor menerima GamePanel
     public KeyHandler(GamePanel gp) {
         this.gp = gp;
     }
@@ -24,34 +25,29 @@ public class KeyHandler implements KeyListener {
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
         
-        // --- TITLE STATE (Menu Awal) ---
         if (gp.gameState == gp.titleState) {
-            if (code == KeyEvent.VK_ENTER) {
-                gp.gameState = gp.playState; // Masuk ke game
-                // [FIX] Tidak perlu panggil startGameTimer() karena sudah jalan di GamePanel
-            }
+            if (code == KeyEvent.VK_ENTER) gp.gameState = gp.playState; 
         }
-        
-        // --- PLAY STATE (Lagi Main) ---
         else if (gp.gameState == gp.playState) {
-            // Gerakan
+            
+            // --- SWAP PLAYER (TAB / ENTER) ---
+            if (code == KeyEvent.VK_TAB || code == KeyEvent.VK_ENTER) {
+                turnSwapPressed = true;
+            }
+
+            // --- GERAK (WASD) ---
             if (code == KeyEvent.VK_W) upPressed = true;
             if (code == KeyEvent.VK_S) downPressed = true;
             if (code == KeyEvent.VK_A) leftPressed = true;
             if (code == KeyEvent.VK_D) rightPressed = true;
             
-            // Interaksi
-            if (code == KeyEvent.VK_SPACE) interactPressed = true;
-            if (code == KeyEvent.VK_SHIFT) dashPressed = true;
-            
-            // Ganti Pemain
-            if (code == KeyEvent.VK_ENTER) turnSwapPressed = true;
-            
-            // Pause
+            // --- AKSI ---
+            if (code == KeyEvent.VK_SPACE) interactPressed = true; // Spasi
+            if (code == KeyEvent.VK_SHIFT) dashPressed = true;     // Shift (Lari)
+
+            // PAUSE
             if (code == KeyEvent.VK_P) gp.gameState = gp.pauseState;
         }
-        
-        // --- PAUSE STATE (Lagi Pause) ---
         else if (gp.gameState == gp.pauseState) {
             if (code == KeyEvent.VK_P) gp.gameState = gp.playState;
         }
@@ -74,6 +70,8 @@ public class KeyHandler implements KeyListener {
     public void keyReleased(KeyEvent e) {
         int code = e.getKeyCode();
         
+        if (code == KeyEvent.VK_TAB || code == KeyEvent.VK_ENTER) turnSwapPressed = false;
+
         if (code == KeyEvent.VK_W) upPressed = false;
         if (code == KeyEvent.VK_S) downPressed = false;
         if (code == KeyEvent.VK_A) leftPressed = false;
@@ -81,6 +79,5 @@ public class KeyHandler implements KeyListener {
         
         if (code == KeyEvent.VK_SPACE) interactPressed = false;
         if (code == KeyEvent.VK_SHIFT) dashPressed = false; 
-        if (code == KeyEvent.VK_ENTER) turnSwapPressed = false; 
     }
 }

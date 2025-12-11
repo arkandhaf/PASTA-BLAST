@@ -1,143 +1,166 @@
 package com.tugasbesar.models.manager;
 
+import com.tugasbesar.models.item.Ingredient;
+import com.tugasbesar.models.item.IngredientFactory;
+import com.tugasbesar.models.item.kitchen_utensil.Plate;
+import com.tugasbesar.models.enums.IngredientState;
+
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import com.tugasbesar.models.item.Dish;
-import com.tugasbesar.models.item.Ingredient;
-// import com.tugasbesar.models.Recipe; 
-// import com.tugasbesar.models.Order;
-
 public class OrderManager {
+    
     private static OrderManager instance;
+    private List<Recipe> recipes; 
+    private List<Order> activeOrders; 
     
-    private List<Order> activeOrder;
-    private List<Recipe> availableRecipe;
-    
-    private float spawnCooldown;
-    private float spawnTimer;
+    private int spawnTimer = 0;
+    private int score = 0;
 
-    private OrderManager(){
-        this.activeOrder = new ArrayList<>();
-        this.availableRecipe = new ArrayList<>();
-        
-        // Cooldown 10 detik (600 tick di 60 FPS)
-        this.spawnCooldown = 600.0f;  
-        this.spawnTimer = 0;
+    private OrderManager() {
+        recipes = new ArrayList<>();
+        activeOrders = new ArrayList<>();
+        initRecipes();
     }
-    
+
     public static OrderManager getInstance() {
-        if (instance == null) {
-            instance = new OrderManager();
-        }
+        if (instance == null) instance = new OrderManager();
         return instance;
     }
-    
-    public void initialize(List<Recipe> recipes, float cooldown) {
-        this.availableRecipe = recipes;
-        this.spawnCooldown = cooldown;
+
+    private void initRecipes() {
+        // 1. Pasta Marinara
+        List<Ingredient> marinaraReq = new ArrayList<>();
+        addReq(marinaraReq, "Pasta", IngredientState.COOKED);
+        addReq(marinaraReq, "Tomato", IngredientState.COOKED);
+        recipes.add(new Recipe("Pasta Marinara", marinaraReq));
+
+        // 2. Pasta Bolognese
+        List<Ingredient> bologneseReq = new ArrayList<>();
+        addReq(bologneseReq, "Pasta", IngredientState.COOKED);
+        addReq(bologneseReq, "Beef", IngredientState.COOKED);
+        recipes.add(new Recipe("Pasta Bolognese", bologneseReq));
+
+        // 3. Frutti di Mare
+        List<Ingredient> fruttiReq = new ArrayList<>();
+        addReq(fruttiReq, "Pasta", IngredientState.COOKED);
+        addReq(fruttiReq, "Shrimp", IngredientState.COOKED);
+        addReq(fruttiReq, "Fish", IngredientState.COOKED);
+        recipes.add(new Recipe("Frutti di Mare", fruttiReq));
     }
 
-    public void update (){
-        // 1. Spawn Logic
-        if (spawnTimer <= 0){
-            spawnOrder(); 
-            this.spawnTimer = this.spawnCooldown; 
+    private void addReq(List<Ingredient> list, String name, IngredientState state) {
+        Ingredient ing = null;
+        switch(name) {
+            case "Pasta": ing = IngredientFactory.createPasta(); break;
+            case "Tomato": ing = IngredientFactory.createTomato(); break;
+            case "Beef": ing = IngredientFactory.createBeef(); break;
+            case "Shrimp": ing = IngredientFactory.createShrimp(); break;
+            case "Fish": ing = IngredientFactory.createFish(); break;
         }
-        else{
-            spawnTimer--;
-        }
-
-        // 2. Update Timer Order (Looping)
-        // Warning "local variable order is not used" muncul karena loop ini kosong.
-        // Kita isi logic sederhana biar warning hilang & berguna.
-        for (Order order : activeOrder) {
-             // Kurangi durasi order setiap tick (asumsi ada method ini, kalau gak ada hapus baris ini)
-             // order.decreaseTimer(); 
-        }
-
-        // 3. Hapus Order Kadaluarsa
-        removeExpiredOrder();
+        if(ing != null) { ing.setState(state); list.add(ing); }
     }
 
-    public void spawnOrder(){
-        if (availableRecipe.isEmpty()) return; 
+    public Recipe findMatchingRecipe(List<String> ingredientNamesInput) {
+        for (Recipe recipe : recipes) {
+            List<String> recipeIngredients = recipe.getIngredientNames();
+            if (ingredientNamesInput.size() != recipeIngredients.size()) continue;
+            boolean match = true;
+            List<String> checklist = new ArrayList<>(recipeIngredients);
+            for(String inputName : ingredientNamesInput) {
+                boolean found = false;
+                for(int i=0; i<checklist.size(); i++) {
+                    if(checklist.get(i).equalsIgnoreCase(inputName)) {
+                        checklist.remove(i);
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found) { match = false; break; }
+            }
+            if (match) return recipe;
+        }
+        return null;
+    }
 
-        Random random = new Random();
-        Recipe randomRecipe = availableRecipe.get(random.nextInt(availableRecipe.size()));
+    public void update() {
+        spawnTimer++;
+        if (spawnTimer >= 600 && activeOrders.size() < 3) { // Maksimal 3 order biar gak penuh layarnya
+            spawnRandomOrder();
+            spawnTimer = 0;
+        }
+        for (int i = 0; i < activeOrders.size(); i++) {
+            activeOrders.get(i).update();
+            if (activeOrders.get(i).isExpired()) {
+                activeOrders.remove(i);
+                score -= 10; 
+                i--;
+            }
+        }
+    }
+
+    private void spawnRandomOrder() {
+        if (recipes.isEmpty()) return;
+        Random rand = new Random();
+        Recipe randomRecipe = recipes.get(rand.nextInt(recipes.size()));
+        activeOrders.add(new Order(randomRecipe, 60)); 
+    }
+
+    public boolean checkDish(Plate plate) {
+        if (plate == null || plate.getContents().isEmpty()) return false;
+        for (int i = 0; i < activeOrders.size(); i++) {
+            if (activeOrders.get(i).getRecipe().matches(plate)) {
+                activeOrders.remove(i);
+                score += 20; 
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // --- [UPDATE] VISUALISASI BAHAN DI DALAM ORDER ---
+    public void draw(Graphics2D g2, int x, int y) {
         
-        int maxDuration = 1200; // 20 detik
-        int minDuration = 600;  // 10 detik
-        int randomOrderDuration = random.nextInt(maxDuration - minDuration + 1) + minDuration; 
+        g2.setColor(Color.WHITE);
+        g2.setFont(new Font("Arial", Font.BOLD, 18));
+        g2.drawString("SCORE: " + score, x, y);
         
-        Order orderSpawn = new Order(randomRecipe, randomOrderDuration);
-        this.activeOrder.add(orderSpawn);
-        
-        // [FIX] Ganti getName() jadi getRecipeName()
-        System.out.println("📜 New Order: " + randomRecipe.getRecipeName()); 
-    }
+        for (int i = 0; i < activeOrders.size(); i++) {
+            Order order = activeOrders.get(i);
+            int yPos = y + 20 + (i * 60); // Jarak antar kotak agak lebaran dikit
 
-    // Method Check Order (Dipanggil ServingStation)
-    public boolean checkOrder(Dish dish){
-        if (dish == null) return false;
+            // 1. Kotak Background (Hitam Transparan)
+            g2.setColor(new Color(0, 0, 0, 180));
+            g2.fillRoundRect(x, yPos, 200, 50, 10, 10);
 
-        String dishRecipeName = dish.getRecipeName(); 
+            // 2. Timer Bar
+            float pct = (float) order.getDuration() / order.getMaxDuration();
+            g2.setColor(pct > 0.5 ? Color.GREEN : Color.RED);
+            g2.fillRect(x + 10, yPos + 40, (int)(180 * pct), 5);
 
-        for (Order order : this.activeOrder){
-            // [FIX] Ganti getName() jadi getRecipeName()
-            String orderRecipeName = order.getRecipe().getRecipeName(); 
+            // 3. Nama Resep (Besar)
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Arial", Font.BOLD, 14));
+            g2.drawString(order.getRecipe().getRecipeName(), x + 10, yPos + 18);
             
-            if (orderRecipeName.equalsIgnoreCase(dishRecipeName)){
-                completeOrder(order);
-                this.activeOrder.remove(order);
-                return true; 
-            }
-        }
-        return false; 
-    }
-
-    public Recipe findMatchingRecipe(List<String> ingredientsString){
-        for (Recipe recipe : availableRecipe) {
-            List<String> recipeIngredients = new ArrayList<>();
-            for (Ingredient ingredient : recipe.requirements) {
-                recipeIngredients.add(ingredient.getName());
+            // 4. [BARU] List Bahan (Kecil di bawah nama)
+            g2.setFont(new Font("Arial", Font.ITALIC, 11)); // Font miring kecil
+            g2.setColor(Color.YELLOW); // Warna kuning biar jelas
+            
+            String ingredientsText = "";
+            List<String> rawIngs = order.getRecipe().getIngredientNames();
+            
+            // Gabungkan nama bahan jadi satu string "Pasta + Beef"
+            for(int j=0; j<rawIngs.size(); j++) {
+                ingredientsText += rawIngs.get(j);
+                if(j < rawIngs.size()-1) ingredientsText += " + ";
             }
             
-            if (recipeIngredients.size() != ingredientsString.size()) {
-                continue;
-            }
-            
-            if (recipeIngredients.containsAll(ingredientsString) && 
-                ingredientsString.containsAll(recipeIngredients)) {
-                return recipe;  
-            }
+            g2.drawString(ingredientsText, x + 10, yPos + 32);
         }
-        return null;  
-    }
-
-    public void completeOrder(Order order){
-        order.setOrderComplete();
-        // ScoreManager.addScore(100);
-    }
-
-    public void failOrder(Order order){
-        order.setOrderFailed();
-    }
-
-    public void removeExpiredOrder(){
-        boolean removed = activeOrder.removeIf(order -> order.isExpired());
-        if (removed) {
-            System.out.println("❌ Order Expired!");
-            // ScoreManager.minusScore(10);
-        }
-    }
-
-    public List<Order> getActiveOrder(){
-        return this.activeOrder;
-    }
-    
-    public List<Recipe> getAvailableRecipe() {
-        return this.availableRecipe;
     }
 }
