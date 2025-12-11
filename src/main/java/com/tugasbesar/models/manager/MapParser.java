@@ -53,8 +53,10 @@ public class MapParser {
                     mapRow.add(c);
                     if (stationIndex < gp.station.length) {
                         createStation(c, col, row, stationIndex);
-                        if (gp.station[stationIndex] != null)
+                        if (gp.station[stationIndex] != null) {
+                            gp.station[stationIndex].setGamePanel(gp);
                             stationIndex++;
+                        }
                     }
                 }
                 mapLayout.add(mapRow);

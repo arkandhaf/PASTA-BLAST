@@ -11,6 +11,9 @@ import java.awt.RenderingHints;
 import java.awt.Rectangle;
 import java.awt.Composite;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.abstracts.Item;
@@ -63,6 +66,7 @@ public class GamePanel extends JPanel implements Runnable {
     private StationRenderer stationRenderer;
     private HeldItemNotification[] heldItemPopups;
     private static final int HELD_ITEM_POPUP_DURATION = 150;
+    private final List<CookingAlert> cookingAlerts;
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -84,6 +88,7 @@ public class GamePanel extends JPanel implements Runnable {
         chef2.setDefaultValues(10, 2);
 
         heldItemPopups = new HeldItemNotification[] { new HeldItemNotification(), new HeldItemNotification() };
+        cookingAlerts = new ArrayList<>();
 
         gameState = playState;
     }
@@ -161,6 +166,7 @@ public class GamePanel extends JPanel implements Runnable {
 
             updateHeldItemPopup(chef1, heldItemPopups[0]);
             updateHeldItemPopup(chef2, heldItemPopups[1]);
+            updateCookingAlerts();
         }
     }
 
@@ -206,6 +212,8 @@ public class GamePanel extends JPanel implements Runnable {
                     messageOn = false;
                 }
             }
+
+            drawCookingAlerts(g2);
 
             // Indicator
             Chef activeChef = (activePlayerID == 1) ? chef1 : chef2;
@@ -332,6 +340,40 @@ public class GamePanel extends JPanel implements Runnable {
         g2.setComposite(original);
     }
 
+    public void pushCookingAlert(int tileX, int tileY, Item item, String message, Color accent) {
+        if (accent == null) {
+            accent = Color.ORANGE;
+        }
+        for (CookingAlert alert : cookingAlerts) {
+            if (alert.matches(tileX, tileY, message)) {
+                alert.refresh(item, accent);
+                return;
+            }
+        }
+        cookingAlerts.add(new CookingAlert(tileX, tileY, item, message, accent));
+    }
+
+    private void updateCookingAlerts() {
+        Iterator<CookingAlert> iterator = cookingAlerts.iterator();
+        while (iterator.hasNext()) {
+            CookingAlert alert = iterator.next();
+            alert.tick();
+            if (alert.isExpired()) {
+                iterator.remove();
+            }
+        }
+    }
+
+    private void drawCookingAlerts(Graphics2D g2) {
+        java.util.Map<Long, Integer> stacks = new java.util.HashMap<>();
+        for (CookingAlert alert : cookingAlerts) {
+            long key = (((long) alert.tileX) << 32) | (alert.tileY & 0xffffffffL);
+            int stackIndex = stacks.getOrDefault(key, 0);
+            alert.draw(g2, tileSize, stackIndex);
+            stacks.put(key, stackIndex + 1);
+        }
+    }
+
     private String getDisplayName(Item item) {
         if (item == null)
             return "";
@@ -357,5 +399,86 @@ public class GamePanel extends JPanel implements Runnable {
         private Item lastItem;
         private int timer;
         private boolean holding;
+    }
+
+    private class CookingAlert {
+        private static final int DURATION = 150;
+        private int timer;
+        private final int tileX;
+        private final int tileY;
+        private Item item;
+        private String message;
+        private Color accent;
+        private BufferedImage icon;
+
+        CookingAlert(int tileX, int tileY, Item item, String message, Color accent) {
+            this.tileX = tileX;
+            this.tileY = tileY;
+            this.item = item;
+            this.message = message;
+            this.accent = accent;
+            this.timer = DURATION;
+            this.icon = AssetManager.getInstance().getItemIcon(item);
+        }
+
+        boolean matches(int tileX, int tileY, String message) {
+            return this.tileX == tileX && this.tileY == tileY && this.message.equals(message);
+        }
+
+        void refresh(Item item, Color accent) {
+            this.timer = DURATION;
+            this.item = item;
+            this.accent = accent;
+            this.icon = AssetManager.getInstance().getItemIcon(item);
+        }
+
+        void tick() {
+            if (timer > 0) {
+                timer--;
+            }
+        }
+
+        boolean isExpired() {
+            return timer <= 0;
+        }
+
+        void draw(Graphics2D g2, int tileSize, int stackIndex) {
+            float alpha = Math.min(1f, timer / (float) DURATION);
+            int width = 140;
+            int height = 46;
+            int screenX = tileX * tileSize + (tileSize - width) / 2;
+            int screenY = tileY * tileSize - height - 8 - (stackIndex * (height + 6));
+
+            if (screenY < 0) {
+                screenY = tileY * tileSize + tileSize + 8 + (stackIndex * (height + 6));
+            }
+
+            Composite original = g2.getComposite();
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+
+            g2.setColor(new Color(0, 0, 0, 210));
+            g2.fillRoundRect(screenX, screenY, width, height, 12, 12);
+
+            g2.setColor(accent);
+            g2.drawRoundRect(screenX, screenY, width, height, 12, 12);
+
+            if (icon != null) {
+                g2.drawImage(icon, screenX + 10, screenY + 8, 30, 30, null);
+            } else {
+                g2.setColor(Color.DARK_GRAY);
+                g2.fillOval(screenX + 12, screenY + 10, 26, 26);
+                g2.setColor(Color.WHITE);
+                g2.drawString("?", screenX + 22, screenY + 28);
+            }
+
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Arial", Font.BOLD, 14));
+            g2.drawString(message, screenX + 48, screenY + 24);
+
+            g2.setFont(new Font("Arial", Font.PLAIN, 11));
+            g2.drawString(getDisplayName(item), screenX + 48, screenY + 38);
+
+            g2.setComposite(original);
+        }
     }
 }

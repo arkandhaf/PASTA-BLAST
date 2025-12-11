@@ -2,6 +2,7 @@ package com.tugasbesar.models.stations;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.abstracts.Item;
+import com.tugasbesar.core.GamePanel;
 
 // --- [WAJIB ADA BIAR GAK ERROR] ---
 import java.awt.Graphics2D;
@@ -10,16 +11,17 @@ import java.awt.Font;
 // ----------------------------------
 
 public abstract class Station {
-    
+
     protected int posX;
     protected int posY;
-    protected String name;   
-    protected String symbol; 
+    protected String name;
+    protected String symbol;
 
-    protected Item itemOnStation;   
-    
+    protected Item itemOnStation;
+
+    protected GamePanel gamePanel;
     // [PENTING] Variabel ini dikembalikan biar CuttingStation gak error
-    protected Chef chefAtStation;   
+    protected Chef chefAtStation;
 
     public Station(int x, int y, String name, String symbol) {
         this.posX = x;
@@ -28,15 +30,18 @@ public abstract class Station {
         this.symbol = symbol;
         this.itemOnStation = null;
         this.chefAtStation = null;
+        this.gamePanel = null;
     }
 
     public abstract void interact(Chef chef);
 
-    public void update() {}
+    public void update() {
+    }
 
     // --- Helper Methods ---
     public boolean placeItem(Item item) {
-        if (itemOnStation != null) return false;
+        if (itemOnStation != null)
+            return false;
         this.itemOnStation = item;
         return true;
     }
@@ -47,11 +52,22 @@ public abstract class Station {
         return temp;
     }
 
-    public boolean isEmpty() { return itemOnStation == null; }
-    
+    public boolean isEmpty() {
+        return itemOnStation == null;
+    }
+
     // Method buat set Chef yang lagi aktif di station (dipake CuttingStation)
-    public void setChef(Chef chef) { this.chefAtStation = chef; }
-    public Chef getChef() { return chefAtStation; }
+    public void setChef(Chef chef) {
+        this.chefAtStation = chef;
+    }
+
+    public Chef getChef() {
+        return chefAtStation;
+    }
+
+    public void setGamePanel(GamePanel gamePanel) {
+        this.gamePanel = gamePanel;
+    }
 
     // --- Default Interact ---
     protected void defaultInteract(Chef chef) {
@@ -61,8 +77,7 @@ public abstract class Station {
             placeItem(hand);
             chef.setHeldItem(null);
             System.out.println("⬇️ [Action] Menaruh " + itemOnStation.getName() + " di " + name);
-        }
-        else if (hand == null && !isEmpty()) {
+        } else if (hand == null && !isEmpty()) {
             chef.setHeldItem(takeItem());
             System.out.println("⬆️ [Action] Mengambil " + chef.getHeldItem().getName() + " dari " + name);
         }
@@ -70,13 +85,13 @@ public abstract class Station {
 
     // --- Visualisasi ---
     public void draw(Graphics2D g2) {
-        int tileSize = 48; 
+        int tileSize = 48;
         int screenX = posX * tileSize;
         int screenY = posY * tileSize;
 
         g2.setColor(Color.DARK_GRAY);
         g2.fillRect(screenX, screenY, tileSize, tileSize);
-        
+
         g2.setColor(Color.BLACK);
         g2.drawRect(screenX, screenY, tileSize, tileSize);
 
@@ -85,17 +100,31 @@ public abstract class Station {
         g2.drawString(symbol, screenX + 15, screenY + 30);
 
         if (itemOnStation != null) {
-            g2.setColor(Color.YELLOW); 
+            g2.setColor(Color.YELLOW);
             g2.fillOval(screenX + 12, screenY + 12, 24, 24);
         }
     }
-    
+
     // Getters
-    public String getName() { return name; }
-    public String getSymbol() { return symbol; }
-    public Item getItemOnStation() { return itemOnStation; }
-    public int getPosX() { return posX; }
-    public int getPosY() { return posY; }
+    public String getName() {
+        return name;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public Item getItemOnStation() {
+        return itemOnStation;
+    }
+
+    public int getPosX() {
+        return posX;
+    }
+
+    public int getPosY() {
+        return posY;
+    }
 
     @Override
     public String toString() {
