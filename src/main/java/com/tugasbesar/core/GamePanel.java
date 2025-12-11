@@ -1,6 +1,7 @@
 package com.tugasbesar.core;
 
 import javax.swing.JPanel;
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -8,8 +9,11 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Rectangle;
+import java.awt.Composite;
+import java.awt.image.BufferedImage;
 
 import com.tugasbesar.models.actors.Chef;
+import com.tugasbesar.models.abstracts.Item;
 import com.tugasbesar.models.stations.Station;
 import com.tugasbesar.models.manager.MapParser;
 import com.tugasbesar.models.manager.OrderManager;
@@ -57,6 +61,8 @@ public class GamePanel extends JPanel implements Runnable {
     public OrderManager orderManager = OrderManager.getInstance();
     private TileManager tileManager;
     private StationRenderer stationRenderer;
+    private HeldItemNotification[] heldItemPopups;
+    private static final int HELD_ITEM_POPUP_DURATION = 150;
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -76,6 +82,8 @@ public class GamePanel extends JPanel implements Runnable {
         // P2 di Kanan (10, 2) -> Koordinat 10 pasti aman di dalam map 14 kolom
         chef1.setDefaultValues(2, 2);
         chef2.setDefaultValues(10, 2);
+
+        heldItemPopups = new HeldItemNotification[] { new HeldItemNotification(), new HeldItemNotification() };
 
         gameState = playState;
     }
@@ -147,6 +155,9 @@ public class GamePanel extends JPanel implements Runnable {
             }
             if (orderManager != null)
                 orderManager.update();
+
+            updateHeldItemPopup(chef1, heldItemPopups[0]);
+            updateHeldItemPopup(chef2, heldItemPopups[1]);
         }
     }
 
@@ -199,6 +210,9 @@ public class GamePanel extends JPanel implements Runnable {
             g2.setFont(new Font("Arial", Font.BOLD, 10));
             g2.drawString("▼", activeChef.x + 20, activeChef.y - 5);
 
+            drawHeldItemPopup(g2, heldItemPopups[0], 20, screenHeight - 90, "P1");
+            drawHeldItemPopup(g2, heldItemPopups[1], screenWidth - 200, screenHeight - 90, "P2");
+
             if (gameState == pauseState)
                 drawOverlay(g2, "PAUSED");
             if (gameState == gameOverState)
@@ -248,5 +262,97 @@ public class GamePanel extends JPanel implements Runnable {
                 other.solidArea.width, other.solidArea.height);
 
         return moverArea.intersects(otherArea);
+    }
+
+    private void updateHeldItemPopup(Chef chef, HeldItemNotification popup) {
+        if (chef == null || popup == null)
+            return;
+
+        Item current = chef.getHeldItem();
+        if (current != null) {
+            if (popup.lastItem != current) {
+                popup.lastItem = current;
+            }
+            popup.holding = true;
+            popup.timer = HELD_ITEM_POPUP_DURATION;
+        } else {
+            if (popup.holding) {
+                popup.holding = false;
+            }
+            if (popup.lastItem != null) {
+                if (popup.timer > 0) {
+                    popup.timer--;
+                } else {
+                    popup.lastItem = null;
+                }
+            }
+        }
+    }
+
+    private void drawHeldItemPopup(Graphics2D g2, HeldItemNotification popup, int x, int y, String label) {
+        if (popup == null || popup.lastItem == null)
+            return;
+
+        float alpha = popup.holding ? 1f : Math.min(1f, popup.timer / (float) HELD_ITEM_POPUP_DURATION);
+        if (alpha <= 0f)
+            return;
+        BufferedImage icon = AssetManager.getInstance().getItemIcon(popup.lastItem);
+        String itemName = getDisplayName(popup.lastItem);
+
+        int width = 180;
+        int height = 70;
+
+        Composite original = g2.getComposite();
+        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+
+        g2.setColor(new Color(0, 0, 0, 200));
+        g2.fillRoundRect(x, y, width, height, 12, 12);
+
+        g2.setColor(Color.WHITE);
+        g2.drawRoundRect(x, y, width, height, 12, 12);
+
+        g2.setFont(new Font("Arial", Font.BOLD, 12));
+        g2.drawString(label, x + 12, y + 18);
+
+        if (icon != null) {
+            g2.drawImage(icon, x + 12, y + 24, 40, 40, null);
+        } else {
+            g2.setColor(Color.DARK_GRAY);
+            g2.fillOval(x + 12, y + 26, 36, 36);
+            g2.setColor(Color.WHITE);
+            g2.drawString("?", x + 26, y + 50);
+        }
+
+        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.drawString(itemName, x + 58, y + 48);
+
+        g2.setComposite(original);
+    }
+
+    private String getDisplayName(Item item) {
+        if (item == null)
+            return "";
+
+        if (item instanceof com.tugasbesar.models.item.Ingredient) {
+            com.tugasbesar.models.item.Ingredient ing = (com.tugasbesar.models.item.Ingredient) item;
+            return ing.getName() + " (" + ing.getState() + ")";
+        }
+
+        if (item instanceof com.tugasbesar.models.item.kitchen_utensil.Plate) {
+            com.tugasbesar.models.item.kitchen_utensil.Plate plate = (com.tugasbesar.models.item.kitchen_utensil.Plate) item;
+            if (!plate.getContents().isEmpty()) {
+                com.tugasbesar.models.interfaces.Processable top = plate.getContents().get(0);
+                return "Plate - " + top.getName();
+            }
+            return "Plate (Empty)";
+        }
+
+        return item.getName();
+    }
+
+    private static class HeldItemNotification {
+        private Item lastItem;
+        private int timer;
+        private boolean holding;
     }
 }

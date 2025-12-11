@@ -6,7 +6,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import com.tugasbesar.models.abstracts.Item;
+import com.tugasbesar.models.enums.IngredientState;
+import com.tugasbesar.models.interfaces.Processable;
+import com.tugasbesar.models.item.Dish;
+import com.tugasbesar.models.item.Ingredient;
+import com.tugasbesar.models.item.kitchen_utensil.Plate;
+import com.tugasbesar.models.abstracts.KitchenUtensil;
 
 /**
  * AssetManager - Loads and caches all game assets (images, sprites, etc.)
@@ -18,10 +27,36 @@ public class AssetManager {
     private Map<String, BufferedImage> imageCache;
     private final Path assetBasePath;
 
+    private static final Map<String, String> INGREDIENT_ICON_MAP;
+    private static final Map<String, String> DISH_ICON_MAP;
+    private static final Map<String, String> UTENSIL_ICON_MAP;
+
     private AssetManager() {
         this.imageCache = new HashMap<>();
         // Resolve asset folder relative to workspace root using platform-safe paths
         this.assetBasePath = Paths.get(System.getProperty("user.dir"), "src", "resources", "assets");
+    }
+
+    static {
+        Map<String, String> ingredients = new HashMap<>();
+        ingredients.put("Tomato", "tomato");
+        ingredients.put("Pasta", "pasta");
+        ingredients.put("Beef", "meat");
+        ingredients.put("Fish", "fish");
+        ingredients.put("Shrimp", "shrimp");
+        INGREDIENT_ICON_MAP = Map.copyOf(ingredients);
+
+        Map<String, String> dishes = new HashMap<>();
+        dishes.put("Pasta Marinara", "pasta_marinara");
+        dishes.put("Pasta Bolognese", "pasta_bolognese");
+        dishes.put("Frutti di Mare", "pasta_frutti_di_mare");
+        DISH_ICON_MAP = Map.copyOf(dishes);
+
+        Map<String, String> utensils = new HashMap<>();
+        utensils.put("Boiling Pot", "boiling_pot");
+        utensils.put("Frying Pan", "frying_pan");
+        utensils.put("Plate", "empty_plate");
+        UTENSIL_ICON_MAP = Map.copyOf(utensils);
     }
 
     public static AssetManager getInstance() {
@@ -202,5 +237,107 @@ public class AssetManager {
      */
     public int getCacheSize() {
         return imageCache.size();
+    }
+
+    /**
+     * Load an icon representing the supplied item if an asset exists.
+     */
+    public BufferedImage getItemIcon(Item item) {
+        if (item == null) {
+            return null;
+        }
+
+        String relativePath = resolveIconPath(item);
+        if (relativePath == null) {
+            return null;
+        }
+
+        return loadImage(relativePath);
+    }
+
+    private String resolveIconPath(Item item) {
+        if (item instanceof Ingredient) {
+            return resolveIngredientIcon((Ingredient) item);
+        }
+
+        if (item instanceof Plate) {
+            return resolvePlateIcon((Plate) item);
+        }
+
+        if (item instanceof Dish) {
+            return resolveDishIcon(((Dish) item).getName());
+        }
+
+        if (item instanceof KitchenUtensil) {
+            return resolveUtensilIcon(item.getName());
+        }
+
+        return null;
+    }
+
+    private String resolveIngredientIcon(Ingredient ingredient) {
+        String base = INGREDIENT_ICON_MAP.getOrDefault(ingredient.getName(), ingredient.getName().toLowerCase());
+        String suffix = "raw";
+        IngredientState state = ingredient.getState();
+        if (state == IngredientState.CHOPPED) {
+            suffix = "chopped";
+        } else if (state == IngredientState.COOKED || state == IngredientState.SERVED) {
+            suffix = "cooked";
+        } else if (state == IngredientState.BURNED) {
+            suffix = "cooked"; // Fallback icon
+        }
+        return "ingredients/" + base.toLowerCase() + "_" + suffix + ".png";
+    }
+
+    private String resolvePlateIcon(Plate plate) {
+        List<Processable> contents = plate.getContents();
+        if (!contents.isEmpty()) {
+            Processable top = contents.get(0);
+            if (top instanceof Dish) {
+                return resolveDishIcon(((Dish) top).getName());
+            }
+            if (top instanceof Ingredient) {
+                return resolveIngredientIcon((Ingredient) top);
+            }
+        }
+        return "utensils/empty_plate.png";
+    }
+
+    private String resolveDishIcon(String dishName) {
+        if (dishName == null) {
+            return null;
+        }
+        String slug = DISH_ICON_MAP.get(dishName);
+        if (slug == null) {
+            slug = normalizeName(dishName);
+        }
+        return "meals/" + slug + ".png";
+    }
+
+    private String resolveUtensilIcon(String utensilName) {
+        if (utensilName == null) {
+            return null;
+        }
+        String slug = UTENSIL_ICON_MAP.get(utensilName);
+        if (slug == null) {
+            slug = normalizeName(utensilName);
+        }
+        return "utensils/" + slug + ".png";
+    }
+
+    private String normalizeName(String value) {
+        String lower = value.toLowerCase();
+        StringBuilder builder = new StringBuilder();
+        for (char c : lower.toCharArray()) {
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+                builder.append(c);
+            } else if (c == ' ' || c == '-' || c == '\t') {
+                builder.append('_');
+            }
+        }
+        String normalized = builder.toString().replaceAll("_+", "_");
+        normalized = normalized.replaceAll("^_", "");
+        normalized = normalized.replaceAll("_$", "");
+        return normalized;
     }
 }
