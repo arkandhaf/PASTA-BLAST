@@ -2,7 +2,9 @@ package com.tugasbesar.core;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,24 +13,24 @@ import java.util.Map;
  * Uses lazy loading to improve performance
  */
 public class AssetManager {
-    
+
     private static AssetManager instance;
     private Map<String, BufferedImage> imageCache;
-    private String assetBasePath;
-    
+    private final Path assetBasePath;
+
     private AssetManager() {
         this.imageCache = new HashMap<>();
-        // Get project root directory
-        this.assetBasePath = System.getProperty("user.dir") + "/src/resources/assets/";
+        // Resolve asset folder relative to workspace root using platform-safe paths
+        this.assetBasePath = Paths.get(System.getProperty("user.dir"), "src", "resources", "assets");
     }
-    
+
     public static AssetManager getInstance() {
         if (instance == null) {
             instance = new AssetManager();
         }
         return instance;
     }
-    
+
     /**
      * Load an image from the assets folder
      */
@@ -36,17 +38,16 @@ public class AssetManager {
         if (imageCache.containsKey(path)) {
             return imageCache.get(path);
         }
-        
+
         try {
-            String fullPath = assetBasePath + path;
-            File file = new File(fullPath);
-            
-            if (!file.exists()) {
-                System.err.println("❌ Asset not found: " + fullPath);
+            Path imagePath = assetBasePath.resolve(Paths.get(path));
+
+            if (!Files.exists(imagePath)) {
+                System.err.println("❌ Asset not found: " + imagePath);
                 return null;
             }
-            
-            BufferedImage image = ImageIO.read(file);
+
+            BufferedImage image = ImageIO.read(imagePath.toFile());
             imageCache.put(path, image);
             System.out.println("✅ Loaded asset: " + path);
             return image;
@@ -56,7 +57,7 @@ public class AssetManager {
             return null;
         }
     }
-    
+
     /**
      * Load chef standing sprites
      */
@@ -68,7 +69,7 @@ public class AssetManager {
         sprites.put("right", loadImage("chef/standing_right.png"));
         return sprites;
     }
-    
+
     /**
      * Load chef walking sprites for given direction
      */
@@ -78,7 +79,7 @@ public class AssetManager {
         sprites.put("right", loadImage("chef/walking_" + direction + "_right.png"));
         return sprites;
     }
-    
+
     /**
      * Load tile sprites
      */
@@ -90,7 +91,7 @@ public class AssetManager {
         }
         return null;
     }
-    
+
     /**
      * Load all tile sprites
      */
@@ -100,20 +101,20 @@ public class AssetManager {
         tiles.put("wall", loadImage("tiles/wall.png"));
         return tiles;
     }
-    
+
     /**
      * Load UI sprites
      */
     public BufferedImage loadUIImage(String imageName) {
         return loadImage("ui/" + imageName + ".png");
     }
-    
+
     /**
      * Load station sprite by type
      */
     public BufferedImage loadStation(String stationType) {
         String filename = null;
-        switch(stationType.toLowerCase()) {
+        switch (stationType.toLowerCase()) {
             case "assembly":
                 filename = "a_assembly_station.png";
                 break;
@@ -143,7 +144,7 @@ public class AssetManager {
         }
         return loadImage("stations/" + filename);
     }
-    
+
     /**
      * Load all station sprites
      */
@@ -159,35 +160,35 @@ public class AssetManager {
         stations.put("washing", loadImage("stations/w_washing_station.png"));
         return stations;
     }
-    
+
     /**
      * Load start screen image
      */
     public BufferedImage loadStartScreen() {
         return loadImage("ui/start.png");
     }
-    
+
     /**
      * Load game over screen image
      */
     public BufferedImage loadGameOverScreen() {
         return loadImage("ui/oops.png");
     }
-    
+
     /**
      * Load congratulations screen image
      */
     public BufferedImage loadCongratualtions() {
         return loadImage("ui/congratulations.png");
     }
-    
+
     /**
      * Load quit screen image
      */
     public BufferedImage loadQuitScreen() {
         return loadImage("ui/quit.png");
     }
-    
+
     /**
      * Clear all cached assets
      */
@@ -195,7 +196,7 @@ public class AssetManager {
         imageCache.clear();
         System.out.println("✅ Asset cache cleared");
     }
-    
+
     /**
      * Get cache statistics
      */

@@ -6,6 +6,8 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.Rectangle;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.stations.Station;
@@ -53,6 +55,8 @@ public class GamePanel extends JPanel implements Runnable {
 
     public MapParser mapParser = new MapParser(this);
     public OrderManager orderManager = OrderManager.getInstance();
+    private TileManager tileManager;
+    private StationRenderer stationRenderer;
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -60,6 +64,9 @@ public class GamePanel extends JPanel implements Runnable {
         this.setDoubleBuffered(true);
         this.addKeyListener(keyH);
         this.setFocusable(true);
+
+        tileManager = new TileManager(this);
+        stationRenderer = new StationRenderer(this);
 
         chef1 = new Chef(this, keyH, "P1", 1);
         chef2 = new Chef(this, keyH, "P2", 2);
@@ -146,18 +153,19 @@ public class GamePanel extends JPanel implements Runnable {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
 
         if (gameState == titleState) {
             drawCenteredText(g2, "PASTA NIMONS COOKED", 30, -30);
             drawCenteredText(g2, "PRESS ENTER TO START", 20, 30);
         } else {
             // 1. Map
-            if (mapParser != null)
-                mapParser.draw(g2);
-            for (int i = 0; i < station.length; i++) {
-                if (station[i] != null)
-                    station[i].draw(g2);
-            }
+            if (tileManager != null && mapParser != null)
+                tileManager.drawMap(g2, mapParser.mapLayout);
+
+            drawStations(g2);
 
             // 2. Chef
             chef1.draw(g2);
@@ -212,5 +220,33 @@ public class GamePanel extends JPanel implements Runnable {
         int x = screenWidth / 2 - length / 2;
         int y = screenHeight / 2 + yOffset;
         g2.drawString(text, x, y);
+    }
+
+    private void drawStations(Graphics2D g2) {
+        if (stationRenderer == null)
+            return;
+
+        for (Station value : station) {
+            if (value != null) {
+                if ("X".equalsIgnoreCase(value.getSymbol())) {
+                    continue;
+                }
+                stationRenderer.drawStation(g2, value);
+            }
+        }
+    }
+
+    public boolean isChefCollision(Chef mover, int nextX, int nextY) {
+        Chef other = (mover == chef1) ? chef2 : chef1;
+        if (other == null) {
+            return false;
+        }
+
+        Rectangle moverArea = new Rectangle(nextX + mover.solidAreaDefaultX, nextY + mover.solidAreaDefaultY,
+                mover.solidArea.width, mover.solidArea.height);
+        Rectangle otherArea = new Rectangle(other.x + other.solidAreaDefaultX, other.y + other.solidAreaDefaultY,
+                other.solidArea.width, other.solidArea.height);
+
+        return moverArea.intersects(otherArea);
     }
 }
