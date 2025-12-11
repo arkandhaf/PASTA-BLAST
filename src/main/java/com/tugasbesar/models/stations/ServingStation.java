@@ -6,7 +6,7 @@ import com.tugasbesar.models.item.Dish;
 import com.tugasbesar.models.interfaces.Processable;
 
 // ASUMSI: Import OrderManager dan ScoreManager (jika ada) sudah disiapkan
-import com.tugasbesar.core.models.manager.OrderManager; 
+import com.tugasbesar.models.manager.OrderManager; 
 // import com.tugasbesar.core.models.manager.ScoreManager; // Asumsi ada ScoreManager
 
 public class ServingStation extends Station {
@@ -51,7 +51,7 @@ public class ServingStation extends Station {
 
         
         // Cek ke OrderManager apakah Dish ini cocok dengan salah satu pesanan aktif
-        boolean isCorrectOrder = OrderManager.getInstance().checkOrder(dish);
+        boolean isCorrectOrder = OrderManager.getInstance().findAndCompleteOrder(dish);
         
         if (isCorrectOrder) {
             System.out.println("🎉 >>> [Serving] Disajikan: " + dish.getRecipeName() + " — Pesanan Tepat! Skor bertambah.");

@@ -2,20 +2,18 @@
 
 package com.tugasbesar.models.stations;
 
-import com.tugasbesar.models.actors.Chef;
-import com.tugasbesar.models.abstracts.Item;
-import com.tugasbesar.models.interfaces.Processable; 
-import com.tugasbesar.models.interfaces.Placeable; 
-import com.tugasbesar.models.enums.IngredientState;
-
-import com.tugasbesar.models.item.Dish;
-import com.tugasbesar.models.item.kitchen_utensil.Plate;
-
-import com.tugasbesar.models.manager.OrderManager; 
-import com.tugasbesar.models.manager.Recipe; 
-
 import java.util.ArrayList;
 import java.util.List;
+
+import com.tugasbesar.models.abstracts.Item;
+import com.tugasbesar.models.actors.Chef; 
+import com.tugasbesar.models.enums.IngredientState;
+import com.tugasbesar.models.interfaces.Placeable;
+import com.tugasbesar.models.interfaces.Processable;
+import com.tugasbesar.models.item.Dish;
+import com.tugasbesar.models.item.kitchen_utensil.Plate;
+import com.tugasbesar.models.manager.OrderManager;
+import com.tugasbesar.models.manager.Recipe;
 
 
 public class AssemblyStation extends Station {
@@ -112,7 +110,7 @@ public class AssemblyStation extends Station {
             plate.clearContents(); 
         
             // buat objek dish baru 
-            Dish finalDish = new Dish(recipeMatch.getDishName(), ingredientNames); 
+            Dish finalDish = new Dish(recipeMatch.getRecipeName(), ingredientNames); 
             
             // Tambahkan dish tunggal ke piring
             plate.addIngredient(finalDish); 
