@@ -39,7 +39,7 @@ public class AssetManager {
             case 'V':
             case 'C':
             case 'T':
-                return loadImage("tiles/floor.png");
+                return loadImage("tiles/another-floor.png");
             default:
                 return null;
         }

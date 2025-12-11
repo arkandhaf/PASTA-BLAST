@@ -85,7 +85,7 @@ public class AssetManager {
      */
     public BufferedImage loadTile(String tileType) {
         if ("floor".equals(tileType)) {
-            return loadImage("tiles/floor.png");
+            return loadImage("tiles/another-floor.png");
         } else if ("wall".equals(tileType)) {
             return loadImage("tiles/wall.png");
         }
@@ -97,7 +97,7 @@ public class AssetManager {
      */
     public Map<String, BufferedImage> loadAllTiles() {
         Map<String, BufferedImage> tiles = new HashMap<>();
-        tiles.put("floor", loadImage("tiles/floor.png"));
+        tiles.put("floor", loadImage("tiles/another-floor.png"));
         tiles.put("wall", loadImage("tiles/wall.png"));
         return tiles;
     }
