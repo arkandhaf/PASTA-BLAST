@@ -120,7 +120,7 @@ public class OrderManager {
 
     public void update() {
         spawnTimer++;
-        if (spawnTimer >= 600 && activeOrders.size() < 3) { // Maksimal 3 order biar gak penuh layarnya
+        if (spawnTimer >= 600 && activeOrders.size() < 3) { // Maksimal 3 order
             spawnRandomOrder();
             spawnTimer = 0;
         }
@@ -175,6 +175,22 @@ public class OrderManager {
         resetCombo();
     }
 
+    // --- [FIX] METHOD RESET SCORE YANG HILANG ---
+    public void resetScore() {
+        this.score = 0;
+        this.activeOrders.clear(); // Hapus semua order lama
+        this.spawnTimer = 0;       // Reset timer spawn
+        this.streak = 0;
+        this.comboMultiplier = 1;
+        this.notifications.clear();
+        System.out.println("🔄 Score & Orders Reset!");
+    }
+    // ------------------------------------------
+
+    public int getScore() {
+        return score;
+    }
+
     public int getStreak() {
         return streak;
     }
@@ -183,7 +199,21 @@ public class OrderManager {
         return comboMultiplier;
     }
 
-    // --- [UPDATE] VISUALISASI BAHAN DI DALAM ORDER ---
+    private int calculateMultiplier(int currentStreak) {
+        if (currentStreak <= 0) {
+            return 1;
+        }
+        int step = currentStreak / COMBO_STEP;
+        step = Math.min(step, MAX_COMBO_MULTIPLIER - 1);
+        return Math.max(1, 1 + step);
+    }
+
+    private void resetCombo() {
+        streak = 0;
+        comboMultiplier = 1;
+    }
+
+    // --- VISUALISASI UI ---
     public void draw(Graphics2D g2, int x, int y) {
 
         Color originalColor = g2.getColor();
@@ -203,9 +233,9 @@ public class OrderManager {
 
         for (int i = 0; i < activeOrders.size(); i++) {
             Order order = activeOrders.get(i);
-            int yPos = orderOffsetY + (i * 60); // Geser sesuai jumlah notif aktif
+            int yPos = orderOffsetY + (i * 60);
 
-            // 1. Kotak Background (Hitam Transparan)
+            // 1. Kotak Background
             g2.setColor(new Color(0, 0, 0, 180));
             g2.fillRoundRect(x, yPos, 200, 50, 10, 10);
 
@@ -214,19 +244,18 @@ public class OrderManager {
             g2.setColor(pct > 0.5 ? Color.GREEN : Color.RED);
             g2.fillRect(x + 10, yPos + 40, (int) (180 * pct), 5);
 
-            // 3. Nama Resep (Besar)
+            // 3. Nama Resep
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 14));
             g2.drawString(order.getRecipe().getRecipeName(), x + 10, yPos + 18);
 
-            // 4. [BARU] List Bahan (Kecil di bawah nama)
-            g2.setFont(new Font("Arial", Font.ITALIC, 11)); // Font miring kecil
-            g2.setColor(Color.YELLOW); // Warna kuning biar jelas
+            // 4. List Bahan (Kuning Kecil)
+            g2.setFont(new Font("Arial", Font.ITALIC, 11));
+            g2.setColor(Color.YELLOW);
 
             String ingredientsText = "";
             List<String> rawIngs = order.getRecipe().getIngredientNames();
 
-            // Gabungkan nama bahan jadi satu string "Pasta + Beef"
             for (int j = 0; j < rawIngs.size(); j++) {
                 ingredientsText += rawIngs.get(j);
                 if (j < rawIngs.size() - 1)
@@ -253,24 +282,6 @@ public class OrderManager {
         notifications.add(new OrderNotification(recipe, type));
     }
 
-    public int getScore() {
-        return score;
-    }
-
-    private int calculateMultiplier(int currentStreak) {
-        if (currentStreak <= 0) {
-            return 1;
-        }
-        int step = currentStreak / COMBO_STEP;
-        step = Math.min(step, MAX_COMBO_MULTIPLIER - 1);
-        return Math.max(1, 1 + step);
-    }
-
-    private void resetCombo() {
-        streak = 0;
-        comboMultiplier = 1;
-    }
-
     public static class ScoreEvent {
         private final Recipe recipe;
         private final int pointsAwarded;
@@ -286,25 +297,11 @@ public class OrderManager {
             this.dishItem = new Dish(recipe.getRecipeName());
         }
 
-        public int getPointsAwarded() {
-            return pointsAwarded;
-        }
-
-        public int getStreak() {
-            return streak;
-        }
-
-        public int getMultiplier() {
-            return multiplier;
-        }
-
-        public Dish getDishItem() {
-            return dishItem;
-        }
-
-        public String getRecipeName() {
-            return recipe.getRecipeName();
-        }
+        public int getPointsAwarded() { return pointsAwarded; }
+        public int getStreak() { return streak; }
+        public int getMultiplier() { return multiplier; }
+        public Dish getDishItem() { return dishItem; }
+        public String getRecipeName() { return recipe.getRecipeName(); }
 
         public String getToastMessage() {
             String message = "+" + pointsAwarded + " pts";
@@ -352,9 +349,7 @@ public class OrderManager {
         }
 
         void tick() {
-            if (timer > 0) {
-                timer--;
-            }
+            if (timer > 0) timer--;
         }
 
         boolean isExpired() {
