@@ -7,12 +7,13 @@ import java.awt.Graphics2D;
 public class UI {
 
     GamePanel gp;
-    Font arial_40, arial_80B, arial_20;
+    Font arial_40, arial_52B, arial_80B, arial_20;
     public int commandNum = 0;
 
     public UI(GamePanel gp) {
         this.gp = gp;
         arial_40 = new Font("Arial", Font.PLAIN, 40);
+        arial_52B = new Font("Arial", Font.BOLD, 52);
         arial_80B = new Font("Arial", Font.BOLD, 80);
         arial_20 = new Font("Arial", Font.PLAIN, 20);
     }
@@ -29,7 +30,7 @@ public class UI {
         }
     }
 
-    // 1. MAIN MENU (MOUSE SUPPORT ENABLED)
+    // 1. MAIN MENU
     private void drawTitleScreen(Graphics2D g2) {
         g2.setColor(new Color(20, 20, 20));
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
@@ -121,17 +122,17 @@ public class UI {
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
 
         g2.setColor(Color.WHITE);
-        g2.setFont(arial_80B);
+        g2.setFont(arial_52B);
         String text = "SELECT STAGE";
         int x = getXforCenteredText(text, g2);
-        int y = gp.tileSize * 2;
+        int y = gp.tileSize + 36;
         g2.drawString(text, x, y);
 
         // Kotak Preview
         int boxWidth = 300;
         int boxHeight = 200;
         int boxX = gp.screenWidth / 2 - boxWidth / 2;
-        int boxY = y + 50;
+        int boxY = y + 36;
 
         g2.setColor(Color.GRAY);
         g2.fillRect(boxX, boxY, boxWidth, boxHeight);
@@ -143,14 +144,14 @@ public class UI {
 
         // Navigasi Stage
         y = boxY + boxHeight + 60;
-        String stageName = "STAGE " + (gp.currentStageIdx + 1);
+        String stageName = "< STAGE " + (gp.currentStageIdx + 1) + " >";
         x = getXforCenteredText(stageName, g2);
 
         g2.setColor(Color.YELLOW);
-        g2.drawString("<  " + stageName + "  >", x, y);
+        g2.drawString(stageName, x, y);
 
         // Info Score
-        y += 50;
+        y += 42;
         g2.setFont(arial_20);
         g2.setColor(Color.WHITE);
         String target = "Target Score: " + gp.stageData[gp.currentStageIdx][1];
@@ -159,7 +160,7 @@ public class UI {
 
         y += 30;
         boolean cleared = gp.stageCleared[gp.currentStageIdx];
-        String status = cleared ? "STATUS: SUCCESS ✅" : "STATUS: NOT CLEARED ❌";
+        String status = cleared ? "STATUS: SUCCESS" : "STATUS: NOT CLEARED";
         g2.setColor(cleared ? Color.GREEN : Color.RED);
         x = getXforCenteredText(status, g2);
         g2.drawString(status, x, y);
