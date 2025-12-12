@@ -67,6 +67,8 @@ public class GamePanel extends JPanel implements Runnable {
     private HeldItemNotification[] heldItemPopups;
     private static final int HELD_ITEM_POPUP_DURATION = 150;
     private final List<TilePopup> tilePopups;
+    private final BufferedImage pauseOverlayImage;
+    private final BufferedImage gameOverOverlayImage;
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
@@ -89,6 +91,19 @@ public class GamePanel extends JPanel implements Runnable {
 
         heldItemPopups = new HeldItemNotification[] { new HeldItemNotification(), new HeldItemNotification() };
         tilePopups = new ArrayList<>();
+
+        AssetManager assetManager = AssetManager.getInstance();
+        BufferedImage pauseImage = assetManager.loadUIImage("paused");
+        if (pauseImage == null) {
+            pauseImage = assetManager.loadUIImage("pause");
+        }
+        pauseOverlayImage = pauseImage;
+
+        BufferedImage overImage = assetManager.loadUIImage("game_over");
+        if (overImage == null) {
+            overImage = assetManager.loadGameOverScreen();
+        }
+        gameOverOverlayImage = overImage;
 
         gameState = playState;
     }
@@ -225,18 +240,37 @@ public class GamePanel extends JPanel implements Runnable {
             drawHeldItemPopup(g2, heldItemPopups[1], screenWidth - 200, screenHeight - 90, "P2");
 
             if (gameState == pauseState)
-                drawOverlay(g2, "PAUSED");
+                drawOverlay(g2, "PAUSED", pauseOverlayImage);
             if (gameState == gameOverState)
-                drawOverlay(g2, "GAME OVER");
+                drawOverlay(g2, "GAME OVER", gameOverOverlayImage);
         }
         g2.dispose();
     }
 
-    private void drawOverlay(Graphics2D g2, String text) {
+    private void drawOverlay(Graphics2D g2, String fallbackText, BufferedImage overlayImage) {
         g2.setColor(new Color(0, 0, 0, 150));
         g2.fillRect(0, 0, screenWidth, screenHeight);
-        g2.setColor(Color.WHITE);
-        drawCenteredText(g2, text, 40, 0);
+        if (!drawOverlayImage(g2, overlayImage)) {
+            g2.setColor(Color.WHITE);
+            drawCenteredText(g2, fallbackText, 40, 0);
+        }
+    }
+
+    private boolean drawOverlayImage(Graphics2D g2, BufferedImage image) {
+        if (image == null) {
+            return false;
+        }
+
+        double scale = Math.max(screenWidth / (double) image.getWidth(), screenHeight / (double) image.getHeight());
+
+        int drawWidth = (int) Math.round(image.getWidth() * scale);
+        int drawHeight = (int) Math.round(image.getHeight() * scale);
+
+        int drawX = (screenWidth - drawWidth) / 2;
+        int drawY = (screenHeight - drawHeight) / 2;
+
+        g2.drawImage(image, drawX, drawY, drawWidth, drawHeight, null);
+        return true;
     }
 
     private void drawCenteredText(Graphics2D g2, String text, int size, int yOffset) {
