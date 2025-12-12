@@ -186,18 +186,18 @@ public class OrderManager {
     // --- [UPDATE] VISUALISASI BAHAN DI DALAM ORDER ---
     public void draw(Graphics2D g2, int x, int y) {
 
-        g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Arial", Font.BOLD, 18));
-        g2.drawString("SCORE: " + score, x, y);
+        Color originalColor = g2.getColor();
+        Font originalFont = g2.getFont();
 
         int comboOffset = 0;
         if (streak >= 2) {
+            g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 12));
-            g2.drawString("Combo x" + comboMultiplier + " (Streak " + streak + ")", x, y + 24);
+            g2.drawString("Combo x" + comboMultiplier + " (Streak " + streak + ")", x, y);
             comboOffset = 18;
         }
 
-        int notificationsY = y + 40 + comboOffset;
+        int notificationsY = y + comboOffset;
         drawNotifications(g2, x, notificationsY);
         int orderOffsetY = notificationsY + (notifications.size() * 70) + 10;
 
@@ -235,6 +235,8 @@ public class OrderManager {
 
             g2.drawString(ingredientsText, x + 10, yPos + 32);
         }
+        g2.setFont(originalFont);
+        g2.setColor(originalColor);
     }
 
     private void drawNotifications(Graphics2D g2, int x, int y) {
@@ -249,6 +251,10 @@ public class OrderManager {
 
     private void pushNotification(Recipe recipe, NotificationType type) {
         notifications.add(new OrderNotification(recipe, type));
+    }
+
+    public int getScore() {
+        return score;
     }
 
     private int calculateMultiplier(int currentStreak) {

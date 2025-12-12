@@ -10,6 +10,7 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Rectangle;
 import java.awt.Composite;
+import java.awt.FontMetrics;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -206,14 +207,12 @@ public class GamePanel extends JPanel implements Runnable {
             chef1.draw(g2);
             chef2.draw(g2);
 
-            // 3. UI (Sederhana di pojok kiri atas)
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, 20));
-            g2.drawString("TIME: " + gameTime, 20, 30);
+            int hudBottom = drawTopHud(g2, 20, 30);
 
             // Order List (Digambar di bawah Timer)
             if (orderManager != null) {
-                orderManager.draw(g2, 20, 50);
+                int orderStartY = Math.max(hudBottom + 10, 60);
+                orderManager.draw(g2, 20, orderStartY);
             }
 
             // Message
@@ -271,6 +270,39 @@ public class GamePanel extends JPanel implements Runnable {
 
         g2.drawImage(image, drawX, drawY, drawWidth, drawHeight, null);
         return true;
+    }
+
+    private int drawTopHud(Graphics2D g2, int x, int baselineY) {
+        String timeText = "TIME: " + gameTime;
+        String scoreText = (orderManager != null) ? "SCORE: " + orderManager.getScore() : "SCORE: 0";
+
+        Font originalFont = g2.getFont();
+        Color originalColor = g2.getColor();
+
+        Font font = new Font("Arial", Font.BOLD, 20);
+        g2.setFont(font);
+        FontMetrics fm = g2.getFontMetrics();
+        int lineHeight = fm.getAscent() + fm.getDescent();
+        int gap = 4;
+        int paddingX = 18;
+        int paddingY = 12;
+        int width = Math.max(fm.stringWidth(timeText), fm.stringWidth(scoreText));
+        int rectX = x - paddingX / 2;
+        int rectY = baselineY - fm.getAscent() - (paddingY / 2);
+        int rectWidth = width + paddingX;
+        int rectHeight = (lineHeight * 2) + gap + paddingY;
+
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.fillRoundRect(rectX, rectY, rectWidth, rectHeight, 16, 16);
+
+        g2.setColor(Color.WHITE);
+        g2.drawString(timeText, x, baselineY);
+        g2.drawString(scoreText, x, baselineY + lineHeight + gap);
+
+        g2.setFont(originalFont);
+        g2.setColor(originalColor);
+
+        return rectY + rectHeight;
     }
 
     private void drawCenteredText(Graphics2D g2, String text, int size, int yOffset) {
