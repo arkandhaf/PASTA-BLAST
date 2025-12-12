@@ -4,6 +4,7 @@ import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
 import com.tugasbesar.core.GamePanel;
 import com.tugasbesar.models.manager.OrderManager;
+import com.tugasbesar.models.manager.OrderManager.ScoreEvent;
 import com.tugasbesar.models.abstracts.Item;
 
 import java.awt.Color;
@@ -43,6 +44,7 @@ public class ServingStation extends Station {
                 if (gp != null)
                     gp.showMessage("Piring Kosong!");
                 notifyInteraction(plate, "Empty plate", new Color(244, 67, 54));
+                OrderManager.getInstance().registerServeFailure();
                 return;
             }
             if (plate.isDirty()) {
@@ -50,24 +52,31 @@ public class ServingStation extends Station {
                 if (gp != null)
                     gp.showMessage("Piring Kotor!");
                 notifyInteraction(plate, "Dirty plate", new Color(244, 67, 54));
+                OrderManager.getInstance().registerServeFailure();
                 return;
             }
 
             // Cek Resep
-            boolean isSuccess = OrderManager.getInstance().checkDish(plate);
+            ScoreEvent serveEvent = OrderManager.getInstance().checkDish(plate);
 
-            if (isSuccess) {
+            if (serveEvent != null) {
                 if (gp != null)
-                    gp.showMessage("✅ BENAR! (+20)");
-                System.out.println("✅ SUKSES: Order ditemukan dan cocok!");
+                    gp.showMessage("✅ BENAR! (+" + serveEvent.getPointsAwarded() + ")");
+                System.out.println("✅ SUKSES: Order ditemukan dan cocok! +" + serveEvent.getPointsAwarded()
+                        + " (Combo x" + serveEvent.getMultiplier() + ", Streak " + serveEvent.getStreak() + ")");
                 notifyInteraction(plate, "Served!", new Color(76, 175, 80));
                 chef.setHeldItem(null);
                 eatingTimers.add(300);
+                if (gp != null) {
+                    gp.pushTilePopup(getPosX(), getPosY(), serveEvent.getDishItem(), getSymbol(),
+                            serveEvent.getToastMessage(), serveEvent.getComboDetail(), new Color(255, 215, 0));
+                }
             } else {
                 if (gp != null)
                     gp.showMessage("❌ SALAH RESEP!");
                 System.out.println("❌ GAGAL: Tidak ada Order yang cocok dengan isi piringmu.");
                 notifyInteraction(plate, "Wrong order", new Color(244, 67, 54));
+                OrderManager.getInstance().registerServeFailure();
             }
             System.out.println("--- 🛑 SERVING DEBUG END 🛑 ---\n");
             return;

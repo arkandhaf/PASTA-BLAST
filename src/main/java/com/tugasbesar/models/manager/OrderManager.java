@@ -25,6 +25,12 @@ public class OrderManager {
 
     private int spawnTimer = 0;
     private int score = 0;
+    private static final int BASE_SCORE = 20;
+    private static final int COMBO_STEP = 3;
+    private static final int MAX_COMBO_MULTIPLIER = 4;
+
+    private int streak = 0;
+    private int comboMultiplier = 1;
 
     private OrderManager() {
         recipes = new ArrayList<>();
@@ -124,6 +130,7 @@ public class OrderManager {
                 pushNotification(activeOrders.get(i).getRecipe(), NotificationType.EXPIRED);
                 activeOrders.remove(i);
                 score -= 10;
+                resetCombo();
                 i--;
             }
         }
@@ -146,17 +153,34 @@ public class OrderManager {
         pushNotification(randomRecipe, NotificationType.SPAWNED);
     }
 
-    public boolean checkDish(Plate plate) {
+    public ScoreEvent checkDish(Plate plate) {
         if (plate == null || plate.getContents().isEmpty())
-            return false;
+            return null;
         for (int i = 0; i < activeOrders.size(); i++) {
-            if (activeOrders.get(i).getRecipe().matches(plate)) {
+            Order order = activeOrders.get(i);
+            if (order.getRecipe().matches(plate)) {
+                Recipe recipe = order.getRecipe();
                 activeOrders.remove(i);
-                score += 20;
-                return true;
+                streak++;
+                comboMultiplier = calculateMultiplier(streak);
+                int awarded = BASE_SCORE * comboMultiplier;
+                score += awarded;
+                return new ScoreEvent(recipe, awarded, streak, comboMultiplier);
             }
         }
-        return false;
+        return null;
+    }
+
+    public void registerServeFailure() {
+        resetCombo();
+    }
+
+    public int getStreak() {
+        return streak;
+    }
+
+    public int getComboMultiplier() {
+        return comboMultiplier;
     }
 
     // --- [UPDATE] VISUALISASI BAHAN DI DALAM ORDER ---
@@ -166,8 +190,16 @@ public class OrderManager {
         g2.setFont(new Font("Arial", Font.BOLD, 18));
         g2.drawString("SCORE: " + score, x, y);
 
-        drawNotifications(g2, x, y + 40);
-        int orderOffsetY = y + 20 + (notifications.size() * 70);
+        int comboOffset = 0;
+        if (streak >= 2) {
+            g2.setFont(new Font("Arial", Font.BOLD, 12));
+            g2.drawString("Combo x" + comboMultiplier + " (Streak " + streak + ")", x, y + 24);
+            comboOffset = 18;
+        }
+
+        int notificationsY = y + 40 + comboOffset;
+        drawNotifications(g2, x, notificationsY);
+        int orderOffsetY = notificationsY + (notifications.size() * 70) + 10;
 
         for (int i = 0; i < activeOrders.size(); i++) {
             Order order = activeOrders.get(i);
@@ -217,6 +249,73 @@ public class OrderManager {
 
     private void pushNotification(Recipe recipe, NotificationType type) {
         notifications.add(new OrderNotification(recipe, type));
+    }
+
+    private int calculateMultiplier(int currentStreak) {
+        if (currentStreak <= 0) {
+            return 1;
+        }
+        int step = currentStreak / COMBO_STEP;
+        step = Math.min(step, MAX_COMBO_MULTIPLIER - 1);
+        return Math.max(1, 1 + step);
+    }
+
+    private void resetCombo() {
+        streak = 0;
+        comboMultiplier = 1;
+    }
+
+    public static class ScoreEvent {
+        private final Recipe recipe;
+        private final int pointsAwarded;
+        private final int streak;
+        private final int multiplier;
+        private final Dish dishItem;
+
+        private ScoreEvent(Recipe recipe, int pointsAwarded, int streak, int multiplier) {
+            this.recipe = recipe;
+            this.pointsAwarded = pointsAwarded;
+            this.streak = streak;
+            this.multiplier = multiplier;
+            this.dishItem = new Dish(recipe.getRecipeName());
+        }
+
+        public int getPointsAwarded() {
+            return pointsAwarded;
+        }
+
+        public int getStreak() {
+            return streak;
+        }
+
+        public int getMultiplier() {
+            return multiplier;
+        }
+
+        public Dish getDishItem() {
+            return dishItem;
+        }
+
+        public String getRecipeName() {
+            return recipe.getRecipeName();
+        }
+
+        public String getToastMessage() {
+            String message = "+" + pointsAwarded + " pts";
+            if (multiplier > 1) {
+                message += " x" + multiplier;
+            } else if (streak > 1) {
+                message += " (Streak " + streak + ")";
+            }
+            return message;
+        }
+
+        public String getComboDetail() {
+            if (multiplier <= 1) {
+                return "Streak " + streak;
+            }
+            return "Combo x" + multiplier + " | Streak " + streak;
+        }
     }
 
     private enum NotificationType {
