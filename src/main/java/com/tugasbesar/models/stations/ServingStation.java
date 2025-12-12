@@ -2,13 +2,7 @@ package com.tugasbesar.models.stations;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
-import com.tugasbesar.models.item.Dish; 
-import com.tugasbesar.models.interfaces.Processable;
-import com.tugasbesar.core.GamePanel;
-
-// ASUMSI: Import OrderManager dan ScoreManager (jika ada) sudah disiapkan
-import com.tugasbesar.models.manager.OrderManager; 
-// import com.tugasbesar.core.models.manager.ScoreManager; // Asumsi ada ScoreManager
+import com.tugasbesar.core.GamePanel; 
 
 public class ServingStation extends Station {
 
@@ -37,36 +31,17 @@ public class ServingStation extends Station {
             return;
         }
         
-        // 3. Validasi Dish (Apakah sudah dirakit menjadi Dish?)
-        Processable content = plate.getContents().get(0);
-        if (!(content instanceof Dish)) {
-            System.out.println("[Serving] Makanan belum dirakit sempurna. Silakan ke Assembly Station dulu!");
-            return;
-        }
+        // --- LOGIC SEDERHANA VALIDASI ---
+        // Nanti disambungkan ke OrderManager untuk cek resep asli.
+        // Untuk sekarang, kita anggap apapun yang disajikan itu diterima dulu.
         
-        Dish dish = (Dish) content;
+        System.out.println("🎉 [Serving] Menyajikan: " + plate.getDishName());
+        if(gp != null) gp.showMessage("Serving: " + plate.getDishName());
 
-
+        // Piring jadi kotor dan kosong
+        plate.markDirty();       
+        plate.clearContents();   
         
-        // Cek ke OrderManager apakah Dish ini cocok dengan salah satu pesanan aktif
-        boolean isCorrectOrder = OrderManager.getInstance().checkOrder(dish);
-        
-        if (isCorrectOrder) {
-            System.out.println("🎉 >>> [Serving] Disajikan: " + dish.getRecipeName() + " — Pesanan Tepat! Skor bertambah.");
-
-        } else {
-            System.out.println("❌ >>> [Serving] Disajikan: " + dish.getRecipeName() + " — Pesanan SALAH/Kadaluarsa! Skor berkurang.");
-  
-        }
-    
-
-
-        // Clear plate and return to chef
-        plate.markDirty();
-        plate.clearContents();
-        System.out.println("[Serving] Piring kotor dikembalikan ke Chef.");
-
-        // Kosongkan tangan Chef
-        chef.setHeldItem(null);
+        System.out.println("ℹ️ Piring kotor dikembalikan ke Chef.");
     }
 }   

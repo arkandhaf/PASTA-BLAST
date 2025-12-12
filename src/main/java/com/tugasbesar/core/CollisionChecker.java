@@ -4,7 +4,7 @@ import com.tugasbesar.models.abstracts.Entity;
 import java.awt.Rectangle; // [PENTING] Tambahin ini biar gak error pas bikin new Rectangle
 
 public class CollisionChecker {
-    
+
     GamePanel gp;
 
     public CollisionChecker(GamePanel gp) {
@@ -31,7 +31,7 @@ public class CollisionChecker {
         }
     }
 
-    // --- 2. CEK TABRAKAN DENGAN STATION/OBJEK  ---
+    // --- 2. CEK TABRAKAN DENGAN STATION/OBJEK ---
     public int checkObject(Entity entity, boolean player) {
         int index = 999; // 999 artinya tidak nabrak apa-apa
 
@@ -46,7 +46,7 @@ public class CollisionChecker {
                 // Kita hitung posisi station di pixel
                 int stationSolidX = gp.station[i].getPosX() * gp.tileSize;
                 int stationSolidY = gp.station[i].getPosY() * gp.tileSize;
-                
+
                 // Bikin area kotak imajiner station (Full 1 kotak 48x48)
                 Rectangle stationArea = new Rectangle(stationSolidX, stationSolidY, gp.tileSize, gp.tileSize);
 
@@ -81,7 +81,7 @@ public class CollisionChecker {
                         }
                         break;
                 }
-                
+
                 // D. Reset posisi solidArea Entity ke default
                 // (Penting: Biar koordinatnya gak nambah terus menerus tiap loop)
                 entity.solidArea.x = entity.solidAreaDefaultX;
