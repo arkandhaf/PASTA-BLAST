@@ -12,48 +12,48 @@ public class TrashStation extends Station {
         super(x, y, "Trash Can", "T");
     }
 
+    // --- [FIX] GANTI NAMA METHOD ---
     @Override
-    public void interact(Chef chef) {
+    public void interactGrab(Chef chef) {
         if (!chef.hasItem()) {
-            System.out.println("⚠️ [Trash] Tidak ada yang bisa dibuang.");
             notifyInteraction("Nothing to toss", new Color(255, 193, 7));
             return;
         }
 
         Item item = chef.getHeldItem();
 
-        // KASUS 1: PIRING (Buang isinya saja, piringnya jangan dibuang)
+        // 1. PIRING (Buang isi)
         if (item instanceof Plate) {
             Plate plate = (Plate) item;
             if (!plate.getContents().isEmpty()) {
-                plate.clearContents(); // Hapus semua makanan di piring
-                System.out.println("🗑️ [Trash] Sisa makanan dibuang dari Piring.");
+                plate.clearContents(); 
                 notifyInteraction(plate, "Cleared plate", new Color(244, 143, 177));
             } else {
-                System.out.println("⚠️ [Trash] Piring sudah kosong.");
                 notifyInteraction(plate, "Already empty", new Color(129, 212, 250));
             }
             return;
         }
 
-        // KASUS 2: PANCI/WAJAN (Buang isinya saja, alatnya jangan)
+        // 2. PANCI (Buang isi)
         if (item instanceof BaseCookingDevice) {
             BaseCookingDevice utensil = (BaseCookingDevice) item;
             if (!utensil.isEmpty()) {
-                utensil.takeItem(); // Ambil isinya dan hilangkan
-                System.out.println("🔥 [Trash] Masakan gosong dibuang dari " + utensil.getName());
+                utensil.takeItem(); 
                 notifyInteraction((Item) utensil, "Cleared " + utensil.getName(), new Color(244, 67, 54));
             } else {
-                System.out.println("⚠️ [Trash] " + utensil.getName() + " sudah kosong.");
                 notifyInteraction((Item) utensil, "Already empty", new Color(129, 212, 250));
             }
             return;
         }
 
-        // KASUS 3: BAHAN MAKANAN / ITEM LAIN (Buang Itemnya)
-        // Hapus item dari tangan chef
+        // 3. BAHAN MAKANAN (Buang Item)
         chef.setHeldItem(null);
-        System.out.println("🗑️ [Trash] " + item.getName() + " dibuang ke tempat sampah.");
         notifyInteraction(item, "Discarded", new Color(244, 67, 54));
+    }
+
+    // --- [FIX] METHOD USE KOSONG ---
+    @Override
+    public void interactUse(Chef chef) {
+        // Gak ada interaksi E di sini
     }
 }

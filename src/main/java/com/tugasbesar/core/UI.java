@@ -1,6 +1,5 @@
 package com.tugasbesar.core;
 
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
@@ -33,9 +32,7 @@ public class UI {
         }
     }
 
-    // 1. MAIN MENU
-    // ... (kode UI lainnya tetap sama) ...
-
+    // 1. MAIN MENU (MOUSE SUPPORT ENABLED)
     private void drawTitleScreen(Graphics2D g2) {
         g2.setColor(new Color(20, 20, 20));
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
@@ -55,58 +52,56 @@ public class UI {
         y += gp.tileSize;
         g2.setColor(Color.WHITE); g2.drawString(text, x, y);
 
-        // --- MENU DENGAN MOUSE ---
+        // --- MENU OPTIONS ---
         String[] options = {"START GAME", "HOW TO PLAY", "EXIT"};
         y += gp.tileSize * 2;
 
-        int menuStartX = gp.screenWidth / 2 - 100; // Perkiraan area tombol (Tengah)
-        int menuWidth = 200; // Lebar area deteksi mouse
-        int menuHeight = 40; // Tinggi area deteksi mouse per tombol
+        // Area Hitbox Mouse (Perkiraan)
+        // int menuStartX = gp.screenWidth / 2 - 100;
+        // int menuWidth = 200; 
+        int menuHeight = 40; 
 
         for(int i = 0; i < options.length; i++) {
             x = getXforCenteredText(options[i], g2);
             y += gp.tileSize + 15;
             
-            // LOGIC DETEKSI MOUSE
-            // Cek apakah kursor ada di area teks ini?
-            // Kita buat kotak imajiner di sekitar teks untuk hitbox
-            int textY = y - 30; // Sesuaikan posisi Y hitbox karena drawString nulis dari bawah
+            // LOGIC DETEKSI MOUSE HOVER
+            int textY = y - 30; // Koordinat Y atas teks
             
             boolean isHover = gp.mouseH.mouseX > x - 20 && 
-                              gp.mouseH.mouseX < x + 200 && // Lebar hitbox
+                              gp.mouseH.mouseX < x + 200 && 
                               gp.mouseH.mouseY > textY && 
                               gp.mouseH.mouseY < textY + menuHeight;
 
-            if (isHover) {
-                // Kursor ada di atas tombol
+            // Jika Mouse di atas Tombol ATAU Keyboard memilih tombol ini
+            if (isHover || commandNum == i) {
                 g2.setColor(Color.YELLOW);
                 g2.drawString("> " + options[i], x - 30, y);
                 
-                // Cek KLIK
-                if (gp.mouseH.mouseClicked) {
-                    gp.mouseH.mouseClicked = false; // Reset klik biar ga kepencet 2x
-                    
-                    if (i == 0) { // START
-                        gp.gameState = gp.stageSelectState;
-                    }
-                    if (i == 1) { // HOW TO PLAY
-                        gp.gameState = gp.howToPlayState;
-                    }
-                    if (i == 2) { // EXIT
-                        System.exit(0);
-                    }
+                // Logic KLIK MOUSE
+                if (isHover && gp.mouseH.mouseClicked) {
+                    gp.mouseH.mouseClicked = false; // Reset klik
+                    performMenuAction(i);
                 }
             } else {
-                // Kursor tidak di atas tombol
                 g2.setColor(Color.WHITE);
                 g2.drawString(options[i], x, y);
             }
         }
-        // Gambar Kursor Mouse (Opsional, kalau mau kursor custom)
-        // g2.setColor(Color.RED);
-        // g2.fillOval(gp.mouseH.mouseX, gp.mouseH.mouseY, 10, 10);
     }
     
+    // Helper untuk aksi menu (biar rapi)
+    private void performMenuAction(int commandIndex) {
+        if (commandIndex == 0) { // START
+            gp.gameState = gp.stageSelectState;
+        }
+        if (commandIndex == 1) { // HOW TO PLAY
+            gp.gameState = gp.howToPlayState;
+        }
+        if (commandIndex == 2) { // EXIT
+            System.exit(0);
+        }
+    }
 
     // 2. STAGE SELECT MENU
     private void drawStageSelect(Graphics2D g2) {
@@ -120,7 +115,7 @@ public class UI {
         int y = gp.tileSize * 2;
         g2.drawString(text, x, y);
 
-        // Kotak Preview Stage
+        // Kotak Preview
         int boxWidth = 300;
         int boxHeight = 200;
         int boxX = gp.screenWidth/2 - boxWidth/2;
@@ -131,11 +126,10 @@ public class UI {
         g2.setColor(Color.WHITE);
         g2.drawRect(boxX, boxY, boxWidth, boxHeight);
         
-        // Info Stage Terpilih
         g2.setFont(arial_40);
-        g2.drawString("Map Preview", boxX + 40, boxY + 110); // Placeholder Image
+        g2.drawString("Map Preview", boxX + 40, boxY + 110);
 
-        // List Stage (Navigasi Kiri Kanan)
+        // Navigasi Stage
         y = boxY + boxHeight + 60;
         String stageName = "STAGE " + (gp.currentStageIdx + 1);
         x = getXforCenteredText(stageName, g2);
@@ -143,7 +137,7 @@ public class UI {
         g2.setColor(Color.YELLOW);
         g2.drawString("<  " + stageName + "  >", x, y);
 
-        // Target Score & Status
+        // Info Score
         y += 50;
         g2.setFont(arial_20);
         g2.setColor(Color.WHITE);
@@ -158,7 +152,6 @@ public class UI {
         x = getXforCenteredText(status, g2);
         g2.drawString(status, x, y);
         
-        // Petunjuk
         g2.setColor(Color.WHITE);
         g2.setFont(arial_20);
         g2.drawString("[ENTER] Start   [ESC] Back", 20, gp.screenHeight - 20);
@@ -166,7 +159,6 @@ public class UI {
 
     // 3. RESULT SCREEN
     private void drawResultScreen(Graphics2D g2) {
-        // Overlay Gelap
         g2.setColor(new Color(0, 0, 0, 200));
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
 
@@ -174,7 +166,6 @@ public class UI {
         int currentScore = gp.orderManager.getScore();
         boolean isPass = currentScore >= targetScore;
         
-        // Update Status Cleared jika Lulus
         if(isPass) {
             gp.stageCleared[gp.currentStageIdx] = true;
         }
@@ -186,7 +177,6 @@ public class UI {
         int y = gp.screenHeight/2 - 50;
         g2.drawString(title, x, y);
 
-        // Score Info
         g2.setFont(arial_40);
         g2.setColor(Color.WHITE);
         
@@ -195,7 +185,6 @@ public class UI {
         y += 60;
         g2.drawString(scoreText, x, y);
 
-        // Back to Menu
         g2.setFont(arial_20);
         g2.setColor(Color.YELLOW);
         String prompt = "Press [ENTER] to Return to Menu";
@@ -204,7 +193,7 @@ public class UI {
         g2.drawString(prompt, x, y);
     }
 
-    // 4. HOW TO PLAY
+    // 4. HOW TO PLAY (UPDATED CONTROLS)
     private void drawHowToPlay(Graphics2D g2) {
         g2.setColor(Color.BLACK);
         g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
@@ -213,26 +202,31 @@ public class UI {
         g2.setFont(arial_40);
         String text = "CONTROLS";
         int x = getXforCenteredText(text, g2);
-        int y = 100;
+        int y = 80;
         g2.drawString(text, x, y);
         
         g2.setFont(arial_20);
         int leftAlign = gp.screenWidth / 3;
         y += 60;
         
+        // --- [UPDATE] INFO KONTROL BARU ---
         g2.drawString("Move:", leftAlign, y); 
-        g2.drawString("W, A, S, D", leftAlign + 150, y); y+=40;
+        g2.drawString("W, A, S, D", leftAlign + 180, y); y+=40;
         
-        g2.drawString("Interact:", leftAlign, y); 
-        g2.drawString("Space Bar", leftAlign + 150, y); y+=40;
+        g2.drawString("Grab / Drop:", leftAlign, y); 
+        g2.drawString("Space Bar", leftAlign + 180, y); y+=40;
         
-        g2.drawString("Dash:", leftAlign, y); 
-        g2.drawString("Shift", leftAlign + 150, y); y+=40;
+        g2.drawString("Work / Use:", leftAlign, y); 
+        g2.drawString("E", leftAlign + 180, y); y+=40;
+        
+        g2.drawString("Dash / Run:", leftAlign, y); 
+        g2.drawString("Shift", leftAlign + 180, y); y+=40;
         
         g2.drawString("Swap Chef:", leftAlign, y); 
-        g2.drawString("Tab / Enter", leftAlign + 150, y); y+=40;
+        g2.drawString("Tab / Enter", leftAlign + 180, y); y+=40;
+        // ----------------------------------
         
-        y += 100;
+        y += 80;
         text = "Press [ESC] to Back";
         x = getXforCenteredText(text, g2);
         g2.setColor(Color.YELLOW);

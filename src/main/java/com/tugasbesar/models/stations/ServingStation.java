@@ -27,43 +27,44 @@ public class ServingStation extends Station {
         this.dirtyPlateReturn = new Stack<>();
     }
 
+    // --- [FIX] GRAB: AMBIL PIRING KOTOR ---
     @Override
-    public void interact(Chef chef) {
+    public void interactGrab(Chef chef) {
+        if (!chef.hasItem()) {
+            if (!dirtyPlateReturn.isEmpty()) {
+                chef.setHeldItem(dirtyPlateReturn.pop());
+                notifyInteraction(chef.getHeldItem(), "Dirty plate", new Color(244, 143, 177));
+            } else {
+                notifyInteraction("No dirty plates", new Color(255, 193, 7));
+            }
+        }
+    }
+
+    // --- [FIX] USE: SAJIKAN MAKANAN (E) ---
+    @Override
+    public void interactUse(Chef chef) {
         Item handItem = chef.getHeldItem();
 
-        // --- 1. MENYAJIKAN MAKANAN ---
         if (handItem != null && handItem instanceof Plate) {
             Plate plate = (Plate) handItem;
 
-            // Debugging Kasar: Cek isi piring di console
-            System.out.println("\n--- 🛑 SERVING DEBUG START 🛑 ---");
-            System.out.println("👉 Isi Piring Kamu: " + plate.getContentsString());
-
             if (plate.getContents().isEmpty()) {
-                System.out.println("❌ GAGAL: Piring terdeteksi KOSONG secara data.");
-                if (gp != null)
-                    gp.showMessage("Piring Kosong!");
+                if (gp != null) gp.showMessage("Piring Kosong!");
                 notifyInteraction(plate, "Empty plate", new Color(244, 67, 54));
                 OrderManager.getInstance().registerServeFailure();
                 return;
             }
             if (plate.isDirty()) {
-                System.out.println("❌ GAGAL: Piring KOTOR.");
-                if (gp != null)
-                    gp.showMessage("Piring Kotor!");
+                if (gp != null) gp.showMessage("Piring Kotor!");
                 notifyInteraction(plate, "Dirty plate", new Color(244, 67, 54));
                 OrderManager.getInstance().registerServeFailure();
                 return;
             }
 
-            // Cek Resep
             ScoreEvent serveEvent = OrderManager.getInstance().checkDish(plate);
 
             if (serveEvent != null) {
-                if (gp != null)
-                    gp.showMessage("✅ BENAR! (+" + serveEvent.getPointsAwarded() + ")");
-                System.out.println("✅ SUKSES: Order ditemukan dan cocok! +" + serveEvent.getPointsAwarded()
-                        + " (Combo x" + serveEvent.getMultiplier() + ", Streak " + serveEvent.getStreak() + ")");
+                if (gp != null) gp.showMessage("✅ BENAR! (+" + serveEvent.getPointsAwarded() + ")");
                 notifyInteraction(plate, "Served!", new Color(76, 175, 80));
                 chef.setHeldItem(null);
                 eatingTimers.add(300);
@@ -72,27 +73,10 @@ public class ServingStation extends Station {
                             serveEvent.getToastMessage(), serveEvent.getComboDetail(), new Color(255, 215, 0));
                 }
             } else {
-                if (gp != null)
-                    gp.showMessage("❌ SALAH RESEP!");
-                System.out.println("❌ GAGAL: Tidak ada Order yang cocok dengan isi piringmu.");
+                if (gp != null) gp.showMessage("❌ SALAH RESEP!");
                 notifyInteraction(plate, "Wrong order", new Color(244, 67, 54));
                 OrderManager.getInstance().registerServeFailure();
             }
-            System.out.println("--- 🛑 SERVING DEBUG END 🛑 ---\n");
-            return;
-        }
-
-        // --- 2. AMBIL PIRING KOTOR ---
-        if (handItem == null) {
-            if (!dirtyPlateReturn.isEmpty()) {
-                chef.setHeldItem(dirtyPlateReturn.pop());
-                System.out.println("🤢 Mengambil Piring Kotor.");
-                notifyInteraction(chef.getHeldItem(), "Dirty plate", new Color(244, 143, 177));
-            } else {
-                System.out.println("⚠️ Belum ada piring kotor.");
-                notifyInteraction("No dirty plates", new Color(255, 193, 7));
-            }
-            return;
         }
     }
 
@@ -109,7 +93,6 @@ public class ServingStation extends Station {
                     Plate p = new Plate();
                     p.markDirty();
                     dirtyPlateReturn.push(p);
-                    System.out.println("🛎️ Pelanggan selesai makan (Piring kotor muncul).");
                     notifyInteraction(p, "Dirty plate", new Color(244, 143, 177));
                 }
             }

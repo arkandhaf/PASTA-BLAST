@@ -2,8 +2,8 @@ AARRAAXXXXXXXX
 J....AXXX....W
 I....AXXX....W
 B.V..AXXX....A
-A....XXXX....R
-P....XXXC....R
+A....XXXX....K
+P....XXXC....K
 S....XXXC..V.F
 S....XXXA....L
 A............T

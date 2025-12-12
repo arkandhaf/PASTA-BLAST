@@ -3,86 +3,63 @@ package com.tugasbesar.models.stations;
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
 import java.util.Stack;
-// Import Grafis
 import java.awt.Color;
 import java.awt.Graphics2D;
 
 public class PlateStorage extends Station {
 
-    // stack untuk menyimpan piring (bersih & kotor)
     private Stack<Plate> plateStack;
 
     public PlateStorage(int x, int y) {
         super(x, y, "Plate Storage", "P");
-
         this.plateStack = new Stack<>();
-
-        // asumsi 5 piring bersih
-        for (int i = 0; i < 5; i++) {
-            Plate p = new Plate();
-            // asumsi default plate itu bersih
-            plateStack.push(p);
-        }
+        for (int i = 0; i < 5; i++) plateStack.push(new Plate());
     }
 
+    // --- [FIX] GANTI NAMA METHOD ---
     @Override
-    public void interact(Chef chef) {
-        // tidak dapat melakukan drop item apapun (NO DROP)
+    public void interactGrab(Chef chef) {
         if (chef.hasItem()) {
-            System.out.println("[!] Gaboleh naruh barang di sini (Storage No Drop).");
             notifyInteraction("No drop here", new Color(255, 193, 7));
             return;
         }
 
-        // kalau storage ga kosong, ambil piring paling atas
         if (!plateStack.isEmpty()) {
-            // cek piring paling atas
             Plate topPlate = plateStack.peek();
-            boolean isDirty = topPlate.isDirty();
-
-            // kalau kotor, harus dicuci dulu jadi gabisa langsung diambil
-            if (isDirty) {
-                System.out.println("[!] Tumpukan tertutup PIRING KOTOR! Tidak bisa diambil.");
+            if (topPlate.isDirty()) {
                 notifyInteraction("Dirty stack", new Color(244, 67, 54));
                 return;
             } else {
                 chef.setHeldItem(plateStack.pop());
-                System.out.println("[Storage] " + chef.getName() + " mengambil Piring Bersih.");
-                System.out.println("   (Sisa tumpukan: " + plateStack.size() + ")");
                 notifyInteraction(chef.getHeldItem(), "Clean plate", new Color(129, 212, 250));
             }
-
         } else {
-            System.out.println("[!] Storage Kosong.");
             notifyInteraction("No plates", new Color(255, 193, 7));
         }
     }
 
-    // piring kotor dari serving langsung ke ATAS stack (Opsional Logic)
+    // --- [FIX] METHOD USE KOSONG ---
+    @Override
+    public void interactUse(Chef chef) {
+        // Gak ada interaksi E di sini
+    }
+
     public void addDirtyPlateFromServing(Plate p) {
         plateStack.push(p);
-        System.out.println(">>> [Auto] Piring kotor masuk ke tumpukan paling atas Storage.");
         notifyInteraction(p, "Dirty plate returned", new Color(244, 143, 177));
     }
 
-    // --- [VISUALISASI TAMBAHAN] ---
     @Override
     public void draw(Graphics2D g2) {
-        super.draw(g2); // Gambar kotak dasar
-
-        // Gambar visual tumpukan piring
+        super.draw(g2); 
         if (!plateStack.isEmpty()) {
-            int count = Math.min(plateStack.size(), 3); // Gambar max 3 tumpuk biar gak penuh banget
-
+            int count = Math.min(plateStack.size(), 3);
             for (int i = 0; i < count; i++) {
                 g2.setColor(Color.WHITE);
-                // Efek tumpuk (geser dikit ke atas)
                 g2.fillOval(posX * 48 + 10, posY * 48 + 10 - (i * 2), 28, 28);
                 g2.setColor(Color.LIGHT_GRAY);
                 g2.drawOval(posX * 48 + 10, posY * 48 + 10 - (i * 2), 28, 28);
             }
-
-            // Indikator jumlah text
             g2.setColor(Color.BLACK);
             g2.drawString("" + plateStack.size(), posX * 48 + 20, posY * 48 + 30);
         }

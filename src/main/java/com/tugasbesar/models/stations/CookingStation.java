@@ -3,174 +3,145 @@ package com.tugasbesar.models.stations;
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.abstracts.Item;
 import com.tugasbesar.models.item.Ingredient;
-import com.tugasbesar.models.item.kitchen_utensil.Plate;
 import com.tugasbesar.models.item.kitchen_utensil.BaseCookingDevice;
-import com.tugasbesar.models.enums.IngredientState;
+import com.tugasbesar.models.item.kitchen_utensil.Plate;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Font;
 
 public class CookingStation extends Station {
-
-    private boolean isCooking = false;
-    private int cookProgress = 0;
-    private final int MAX_PROGRESS = 200;
-    private final int COOK_SPEED = 1;
-    private int burnCounter = 0;
-    private final int BURN_WARNING_THRESHOLD = 180;
-    private final int BURN_CONSUME_THRESHOLD = 260;
-    private boolean cookedAlertShown = false;
-    private boolean burnAlertShown = false;
 
     public CookingStation(int x, int y) {
         super(x, y, "Stove", "K");
     }
 
     @Override
-    public void interact(Chef chef) {
+    public void interactGrab(Chef chef) {
         Item hand = chef.getHeldItem();
+        Item stationItem = getItemOnStation();
 
-        // 1. TARUH ITEM
-        if (chef.hasItem() && isEmpty()) {
-            // Transit Alat/Piring
-            if (hand instanceof Plate || hand instanceof BaseCookingDevice) {
-                placeItem(hand);
-                chef.setHeldItem(null);
-                return;
-            }
+        // 1. TARUH ALAT
+        if (hand instanceof BaseCookingDevice && isEmpty()) {
+            placeItem(hand);
+            chef.setHeldItem(null);
+            notifyInteraction(hand, "Placed", new Color(0, 188, 212));
+            return;
+        }
 
-            // Masak Bahan
-            if (hand instanceof Ingredient) {
-                Ingredient ing = (Ingredient) hand;
+        // 2. MASUKKAN BAHAN (Ke Alat)
+        if (hand instanceof Ingredient && stationItem instanceof BaseCookingDevice) {
+            BaseCookingDevice device = (BaseCookingDevice) stationItem;
+            Ingredient ing = (Ingredient) hand;
 
-                // Cek Logic canBeCooked() yang baru di Ingredient.java
-                if (ing.canBeCooked()) {
-                    placeItem(hand);
+            if (device.canAccept(ing)) {
+                if (device.isEmpty()) {
+                    device.addIngredient(ing);
                     chef.setHeldItem(null);
-
-                    isCooking = true;
-                    cookProgress = 0;
-                    burnCounter = 0;
-                    cookedAlertShown = false;
-                    burnAlertShown = false;
-                    System.out.println("🔥 [Stove] Mulai memasak " + ing.getName());
-                    notifyInteraction(ing, "Cooking...", new Color(255, 152, 0));
+                    notifyInteraction("Press E to Cook", Color.YELLOW);
                 } else {
-                    System.out.println("⚠️ [Stove] Bahan ini belum siap dimasak (Mungkin harus dipotong dulu?)");
-                    notifyInteraction(ing, "Needs prep", new Color(255, 193, 7));
+                    notifyInteraction("Full!", Color.RED);
                 }
+            } else {
+                notifyInteraction("Wrong Tool/Ingredient", Color.RED);
             }
             return;
         }
 
-        // 2. AMBIL ITEM
-        if (!chef.hasItem() && !isEmpty()) {
-            if (isCooking) {
-                System.out.println("⚠️ [Stove] Sedang memasak...");
-                return;
-            }
-            chef.setHeldItem(takeItem());
-            cookProgress = 0;
-            burnCounter = 0;
-            cookedAlertShown = false;
-            burnAlertShown = false;
-            System.out.println("⬆️ [Stove] Mengambil masakan.");
-            notifyInteraction(chef.getHeldItem(), "Picked", new Color(255, 193, 7));
-        }
-
-        // 3. PLATING (Piring Ambil Makanan)
-        if (hand instanceof Plate && !isEmpty()) {
-            if (isCooking) {
-                System.out.println("⚠️ Masih dimasak!");
-                return;
-            }
-
+        // 3. PLATING (Piring Ambil Isi)
+        if (hand instanceof Plate && stationItem instanceof BaseCookingDevice) {
+            BaseCookingDevice device = (BaseCookingDevice) stationItem;
             Plate plate = (Plate) hand;
 
-            // Cek apakah yang di meja itu Ingredient?
-            if (itemOnStation instanceof Ingredient) {
-                Ingredient food = (Ingredient) itemOnStation;
-
-                // Cek apakah piring mau terima? (Harus COOKED)
-                if (plate.canAccept(food)) {
-                    // AMBIL DARI MEJA
-                    Item takenItem = takeItem();
-
-                    // MASUKKAN KE PIRING
-                    plate.addIngredient((Ingredient) takenItem);
-
-                    cookProgress = 0;
-                    burnCounter = 0;
-                    cookedAlertShown = false;
-                    burnAlertShown = false;
-                    System.out.println("🍽️ [Stove] Berhasil memindahkan " + takenItem.getName() + " ke Piring.");
-                    notifyInteraction(takenItem, "Plated", new Color(3, 169, 244));
+            if (!device.isEmpty()) {
+                Ingredient foodInside = (Ingredient) device.getContents().get(0);
+                if (plate.canAccept(foodInside)) {
+                    device.getContents().clear();
+                    plate.addIngredient(foodInside);
+                    notifyInteraction(foodInside, "Plated", new Color(50, 150, 255));
                 } else {
-                    System.out.println("⚠️ [Stove] Piring menolak item ini (Mungkin belum COOKED?)");
-                    notifyInteraction(food, "Not ready", new Color(244, 67, 54));
+                    notifyInteraction("Not Ready/Dirty", Color.RED);
                 }
             }
             return;
+        }
+
+        // 4. AMBIL ALAT (PORTABLE)
+        if (hand == null && !isEmpty()) {
+            Item takenItem = takeItem();
+            chef.setHeldItem(takenItem);
+            notifyInteraction("Picked Up", Color.WHITE);
+            return;
+        }
+    }
+
+    @Override
+    public void interactUse(Chef chef) {
+        if (itemOnStation instanceof BaseCookingDevice) {
+            BaseCookingDevice device = (BaseCookingDevice) itemOnStation;
+            if (!device.isEmpty() && !device.isBurned() && !device.isCooked()) {
+                if (!device.isCooking()) {
+                    device.startCooking();
+                    notifyInteraction("Cooking Started!", Color.ORANGE);
+                }
+            } else if (device.isEmpty()) {
+                notifyInteraction("Empty!", Color.GRAY);
+            }
         }
     }
 
     @Override
     public void update() {
-        if (isCooking && itemOnStation != null) {
-            cookProgress += COOK_SPEED;
-            if (cookProgress >= MAX_PROGRESS) {
-                finishCooking();
-            }
-        } else if (itemOnStation instanceof Ingredient) {
-            Ingredient ing = (Ingredient) itemOnStation;
-            IngredientState state = ing.getState();
-            if (state == IngredientState.COOKED) {
-                burnCounter++;
-                if (!burnAlertShown && burnCounter >= BURN_WARNING_THRESHOLD) {
-                    triggerAlert("Burning!", new Color(244, 67, 54), ing);
-                    burnAlertShown = true;
-                }
-                if (burnCounter >= BURN_CONSUME_THRESHOLD) {
-                    ing.burn();
-                    burnCounter = 0;
-                }
-            } else {
-                burnCounter = 0;
-            }
+        if (itemOnStation instanceof BaseCookingDevice) {
+            ((BaseCookingDevice) itemOnStation).processCookingTick(); 
         }
-    }
-
-    private void finishCooking() {
-        isCooking = false;
-        burnCounter = 0;
-        if (itemOnStation instanceof Ingredient) {
-            ((Ingredient) itemOnStation).cook();
-            System.out.println("✅ [Stove] Matang! (" + itemOnStation.getName() + " COOKED)");
-            if (!cookedAlertShown) {
-                triggerAlert("Cooked!", new Color(76, 175, 80), (Ingredient) itemOnStation);
-                cookedAlertShown = true;
-                burnAlertShown = false;
-            }
-        }
-    }
-
-    private void triggerAlert(String message, Color accent, Ingredient ingredient) {
-        notifyInteraction(ingredient, message, accent);
     }
 
     @Override
     public void draw(Graphics2D g2) {
         super.draw(g2);
-        if (cookProgress > 0) {
-            int width = (int) ((double) cookProgress / MAX_PROGRESS * 40);
-            g2.setColor(isCooking ? Color.RED : Color.GREEN);
-            g2.fillRect(posX * 48 + 4, posY * 48 - 10, width, 6);
-        }
+        
+        if (itemOnStation instanceof BaseCookingDevice) {
+            BaseCookingDevice device = (BaseCookingDevice) itemOnStation;
+            int progress = device.getCookingPercentage(); 
+            boolean isBurned = device.isBurned();
+            boolean isCooked = device.isCooked();
+            boolean isCooking = device.isCooking();
 
-        // Visual Text kalau sudah matang
-        if (!isEmpty() && !isCooking && itemOnStation instanceof Ingredient) {
-            g2.setColor(Color.GREEN);
-            g2.setFont(g2.getFont().deriveFont(9F));
-            g2.drawString("COOKED", posX * 48 + 5, posY * 48 + 20);
+            if (!device.isEmpty()) {
+                String statusText = "";
+                Color statusColor = Color.WHITE;
+
+                // LOGIC STATUS TEXT
+                if (isBurned) {
+                    statusText = "XXX BURNED XXX";
+                    statusColor = Color.RED;
+                } else if (isCooked) {
+                    statusText = "!!! COOKED !!!";
+                    statusColor = Color.GREEN;
+                } else if (isCooking) {
+                    statusText = progress + "%";
+                    statusColor = Color.ORANGE;
+                } else {
+                    statusText = "PRESS E";
+                    statusColor = Color.YELLOW;
+                }
+                
+                // Gambar Teks di Tengah Atas
+                g2.setColor(statusColor);
+                g2.setFont(new Font("Arial", Font.BOLD, 11));
+                int textLen = (int) g2.getFontMetrics().getStringBounds(statusText, g2).getWidth();
+                g2.drawString(statusText, (posX * 48) + (24 - textLen/2), posY * 48 - 8);
+
+                // Gambar Progress Bar
+                g2.setColor(Color.BLACK);
+                g2.drawRect(posX * 48 + 4, posY * 48 - 5, 40, 6);
+                g2.setColor(Color.DARK_GRAY);
+                g2.fillRect(posX * 48 + 5, posY * 48 - 4, 39, 5);
+
+                int fillWidth = (int) ((progress / 100.0) * 39);
+                g2.setColor(statusColor);
+                g2.fillRect(posX * 48 + 5, posY * 48 - 4, fillWidth, 5);
+            }
         }
     }
 }

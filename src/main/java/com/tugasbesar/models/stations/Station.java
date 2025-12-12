@@ -33,8 +33,10 @@ public abstract class Station {
         this.gamePanel = null;
     }
 
-    public abstract void interact(Chef chef);
+    public abstract void interactGrab(Chef chef);
 
+    public abstract void interactUse(Chef chef);
+    
     public void update() {
     }
 

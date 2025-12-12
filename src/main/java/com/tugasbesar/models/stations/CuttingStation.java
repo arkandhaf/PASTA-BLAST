@@ -23,126 +23,149 @@ public class CuttingStation extends Station {
         super(x, y, "Cutting Board", "C");
     }
 
+    // --- GRAB: TARUH / AMBIL (SPACE) ---
     @Override
-    public void interact(Chef chef) {
+    public void interactGrab(Chef chef) {
         Item hand = chef.getHeldItem();
 
-        // -----------------------------------------------------------
-        // 1. PLATING LOGIC (PENTING: Chef bawa Piring -> Ambil isi Meja)
-        // -----------------------------------------------------------
+        // 1. PLATING LOGIC (Piring ambil dari meja)
         if (hand instanceof Plate && !isEmpty()) {
-            if (isCutting) {
-                System.out.println("⚠️ Tunggu selesai memotong!");
-                return;
-            }
-
             Plate plate = (Plate) hand;
             Item itemOnTable = itemOnStation;
-
-            // Cek apakah item di meja adalah bahan makanan (Processable)
             if (itemOnTable instanceof Processable) {
                 Processable ingredient = (Processable) itemOnTable;
-
-                // Coba masukkan ke piring
                 if (plate.canAccept(ingredient)) {
-                    // Ambil item dari meja
                     Item takenItem = takeItem();
-                    // Masukkan ke piring
                     plate.addIngredient((Processable) takenItem);
-
-                    // Reset progress bar visual
-                    cutProgress = 0;
-                    System.out.println("🍽️ [Cutting] " + takenItem.getName() + " dimasukkan ke Piring.");
+                    
+                    // Reset Status
+                    resetCuttingStatus();
+                    
                     notifyInteraction(takenItem, "Added to plate", new Color(3, 169, 244));
                     return;
                 }
             }
         }
 
-        // -----------------------------------------------------------
-        // 2. TARUH ITEM (Chef bawa barang -> Meja kosong)
-        // -----------------------------------------------------------
+        // 2. TARUH ITEM (Input)
         if (chef.hasItem() && isEmpty()) {
-            // Logic taruh Piring/Alat/Bahan (Sama seperti sebelumnya)
+            
+            // A. Kalau bawa Panci/Piring (Cuma numpang taruh)
             if (hand instanceof Plate || hand instanceof BaseCookingDevice) {
                 placeItem(hand);
                 chef.setHeldItem(null);
                 notifyInteraction(hand, "Placed", new Color(0, 188, 212));
                 return;
             }
+            
+            // B. Kalau bawa Bahan (Ingredient)
             if (hand instanceof Ingredient) {
-                placeItem(hand);
-                chef.setHeldItem(null);
-                notifyInteraction(hand, "Ready to chop", new Color(63, 81, 181));
-                return;
-            }
-        }
-
-        // -----------------------------------------------------------
-        // 3. MULAI MEMOTONG (Meja ada bahan, Chef tangan kosong)
-        // -----------------------------------------------------------
-        if (!chef.hasItem() && !isEmpty()) {
-            // Cek bisa dipotong?
-            if (itemOnStation instanceof Choppable && ((Choppable) itemOnStation).canBeChopped()) {
-                // Cek status lagi biar aman
-                if (itemOnStation instanceof Ingredient) {
-                    Ingredient ing = (Ingredient) itemOnStation;
-                    if (ing.getState() == IngredientState.RAW && !isCutting) {
-                        this.chefAtStation = chef;
-                        chef.setBusy(true);
-                        isCutting = true;
-                        cutProgress = 0;
-                        System.out.println("🔪 [Cutting] Mulai memotong...");
-                        notifyInteraction(itemOnStation, "Cutting...", new Color(33, 150, 243));
-                        return;
-                    }
+                Ingredient ing = (Ingredient) hand;
+                
+                // [FIX] Cek apakah bahan INI boleh dipotong?
+                // Pasta (Raw) -> canBeChopped() = false -> Ditolak
+                // Tomato (Raw) -> canBeChopped() = true -> Diterima
+                if (ing.canBeChopped()) {
+                    placeItem(hand);
+                    chef.setHeldItem(null);
+                    notifyInteraction(hand, "Ready to chop", new Color(63, 81, 181));
+                } else {
+                    System.out.println("⚠️ [Cutting] Bahan ini tidak perlu dipotong!");
+                    notifyInteraction(hand, "No need chop", new Color(244, 67, 54));
                 }
+                return;
             }
         }
 
-        // -----------------------------------------------------------
-        // 4. AMBIL ITEM (Manual pakai tangan)
-        // -----------------------------------------------------------
+        // 3. AMBIL ITEM (Output)
         if (!chef.hasItem() && !isEmpty()) {
-            if (isCutting)
-                return;
+            // [FIX] Selalu izinkan ambil, dan paksa stop cutting
             chef.setHeldItem(takeItem());
-            cutProgress = 0;
+            resetCuttingStatus(); // Reset progress bar & status
+            
             System.out.println("⬆️ [Cutting] Mengambil item.");
             notifyInteraction(chef.getHeldItem(), "Picked", new Color(255, 193, 7));
         }
     }
 
+    // --- USE: PROSES POTONG (E) ---
+    @Override
+    public void interactUse(Chef chef) {
+        // Hanya bisa motong kalau ada barang & chef tangan kosong
+        if (!isEmpty() && !chef.hasItem()) {
+            if (itemOnStation instanceof Choppable && ((Choppable) itemOnStation).canBeChopped()) {
+                if (itemOnStation instanceof Ingredient) {
+                    Ingredient ing = (Ingredient) itemOnStation;
+                    
+                    // Hanya potong kalau masih RAW
+                    if (ing.getState() == IngredientState.RAW) {
+                        this.chefAtStation = chef;
+                        chef.setBusy(true); // Tahan Chef
+                        isCutting = true;
+                        cutProgress += CUT_SPEED;
+                        notifyInteraction(itemOnStation, "Cutting...", new Color(33, 150, 243));
+                        
+                        if (cutProgress >= MAX_PROGRESS) {
+                            finishCutting();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Override
     public void update() {
-        if (isCutting && chefAtStation != null) {
-            cutProgress += CUT_SPEED;
-            if (cutProgress >= MAX_PROGRESS)
-                finishCutting();
+        // Jika tombol E dilepas (tidak ada interactUse), kita anggap stop cutting
+        // Logic ini ditangani oleh Chef.java yang memanggil interactUse terus menerus saat ditahan.
+        // Kita hanya perlu safety check.
+        
+        // Reset progress pelan-pelan kalau ditinggal (Opsional, tapi bagus buat gameplay)
+        if (!isCutting && cutProgress > 0) {
+            // cutProgress--; // Uncomment kalau mau progress turun sendiri saat ditinggal
+        }
+        
+        // Reset flag cutting setiap frame, nanti interactUse akan men-set true lagi kalau ditekan
+        isCutting = false; 
+        if (chefAtStation != null) {
+            chefAtStation.setBusy(false);
+            chefAtStation = null;
         }
     }
 
     private void finishCutting() {
         isCutting = false;
         cutProgress = 0;
+        
         if (itemOnStation instanceof Choppable)
             ((Choppable) itemOnStation).chop();
+            
+        if (itemOnStation != null) {
+            notifyInteraction(itemOnStation, "Chopped!", new Color(0, 200, 83));
+        }
+    }
+    
+    private void resetCuttingStatus() {
+        isCutting = false;
+        cutProgress = 0;
         if (chefAtStation != null) {
             chefAtStation.setBusy(false);
             chefAtStation = null;
-        }
-        if (itemOnStation != null) {
-            notifyInteraction(itemOnStation, "Chopped!", new Color(0, 200, 83));
         }
     }
 
     @Override
     public void draw(Graphics2D g2) {
         super.draw(g2);
+        // Gambar Bar Hijau
         if (cutProgress > 0) {
             int width = (int) ((double) cutProgress / MAX_PROGRESS * 40);
             g2.setColor(Color.GREEN);
             g2.fillRect(posX * 48 + 4, posY * 48 - 10, width, 6);
+            
+            // Border Bar
+            g2.setColor(Color.BLACK);
+            g2.drawRect(posX * 48 + 4, posY * 48 - 10, 40, 6);
         }
     }
 }

@@ -6,8 +6,12 @@ import java.awt.event.KeyListener;
 public class KeyHandler implements KeyListener {
 
     GamePanel gp;
+
+    // GAMEPLAY CONTROLS
     public boolean upPressed, downPressed, leftPressed, rightPressed;
-    public boolean interactPressed, dashPressed;
+    public boolean interactPressed; // SPACE (Grab)
+    public boolean usePressed;      // E (Process)
+    public boolean dashPressed;     // SHIFT
     public boolean turnSwapPressed = false; 
 
     public KeyHandler(GamePanel gp) {
@@ -20,18 +24,20 @@ public class KeyHandler implements KeyListener {
     public void keyPressed(KeyEvent e) {
         int code = e.getKeyCode();
 
-        // 1. MAIN MENU
+        // 1. MAIN MENU (Navigasi Keyboard Cadangan)
         if (gp.gameState == gp.titleState) {
-            if (code == KeyEvent.VK_W) {
+            if (code == KeyEvent.VK_W || code == KeyEvent.VK_UP) {
                 gp.ui.commandNum--;
                 if(gp.ui.commandNum < 0) gp.ui.commandNum = 2;
             }
-            if (code == KeyEvent.VK_S) {
+            if (code == KeyEvent.VK_S || code == KeyEvent.VK_DOWN) {
                 gp.ui.commandNum++;
                 if(gp.ui.commandNum > 2) gp.ui.commandNum = 0;
             }
+            
+            // ENTER biar bisa masuk walau mouse macet
             if (code == KeyEvent.VK_ENTER) {
-                if(gp.ui.commandNum == 0) gp.gameState = gp.stageSelectState; // Ke Stage Select
+                if(gp.ui.commandNum == 0) gp.gameState = gp.stageSelectState;
                 if(gp.ui.commandNum == 1) gp.gameState = gp.howToPlayState;
                 if(gp.ui.commandNum == 2) System.exit(0);
             }
@@ -48,10 +54,10 @@ public class KeyHandler implements KeyListener {
                 if(gp.currentStageIdx >= gp.stageData.length) gp.currentStageIdx = 0;
             }
             if (code == KeyEvent.VK_ENTER) {
-                gp.retryGame(); // Load map dan start
+                gp.retryGame(); // START
             }
             if (code == KeyEvent.VK_ESCAPE) {
-                gp.gameState = gp.titleState; // Balik ke Main Menu
+                gp.gameState = gp.titleState;
             }
         }
 
@@ -63,19 +69,25 @@ public class KeyHandler implements KeyListener {
         // 4. RESULT SCREEN
         else if (gp.gameState == gp.resultState) {
             if (code == KeyEvent.VK_ENTER) {
-                gp.gameState = gp.stageSelectState; // Balik pilih stage lagi
+                gp.gameState = gp.stageSelectState;
             }
         }
 
         // 5. GAMEPLAY
         else if (gp.gameState == gp.playState) {
-            if (code == KeyEvent.VK_TAB || code == KeyEvent.VK_ENTER) turnSwapPressed = true;
+            // Movement
             if (code == KeyEvent.VK_W) upPressed = true;
             if (code == KeyEvent.VK_S) downPressed = true;
             if (code == KeyEvent.VK_A) leftPressed = true;
             if (code == KeyEvent.VK_D) rightPressed = true;
-            if (code == KeyEvent.VK_SPACE) interactPressed = true;
+            
+            // Actions
+            if (code == KeyEvent.VK_SPACE) interactPressed = true; // GRAB
+            if (code == KeyEvent.VK_E) usePressed = true;          // USE
             if (code == KeyEvent.VK_SHIFT) dashPressed = true;
+            
+            // System
+            if (code == KeyEvent.VK_TAB || code == KeyEvent.VK_ENTER) turnSwapPressed = true;
             if (code == KeyEvent.VK_P) gp.gameState = gp.pauseState;
         }
         
@@ -89,13 +101,16 @@ public class KeyHandler implements KeyListener {
     public void keyReleased(KeyEvent e) {
         if (gp.gameState == gp.playState) {
             int code = e.getKeyCode();
-            if (code == KeyEvent.VK_TAB || code == KeyEvent.VK_ENTER) turnSwapPressed = false;
             if (code == KeyEvent.VK_W) upPressed = false;
             if (code == KeyEvent.VK_S) downPressed = false;
             if (code == KeyEvent.VK_A) leftPressed = false;
             if (code == KeyEvent.VK_D) rightPressed = false;
+            
             if (code == KeyEvent.VK_SPACE) interactPressed = false;
-            if (code == KeyEvent.VK_SHIFT) dashPressed = false; 
+            if (code == KeyEvent.VK_E) usePressed = false;
+            
+            if (code == KeyEvent.VK_SHIFT) dashPressed = false;
+            if (code == KeyEvent.VK_TAB || code == KeyEvent.VK_ENTER) turnSwapPressed = false;
         }
     }
 }

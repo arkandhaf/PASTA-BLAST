@@ -5,6 +5,7 @@ import com.tugasbesar.core.GamePanel;
 import com.tugasbesar.core.KeyHandler;
 import com.tugasbesar.models.abstracts.Entity;
 import com.tugasbesar.models.abstracts.Item;
+import com.tugasbesar.models.stations.Station;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -26,12 +27,16 @@ public class Chef extends Entity {
     private Map<String, BufferedImage> standingSprites;
     private Map<String, BufferedImage[]> walkingSprites;
 
+    // Tambahan untuk debounce tombol
+    private boolean prevGrabPressed = false;
+    private boolean prevUsePressed = false;
+
     public Chef(GamePanel gp, KeyHandler keyH, String name, int playerID) {
         this.gp = gp;
         this.name = name;
         this.playerID = playerID;
 
-        // Hitbox kecil biar enak
+        // Hitbox
         int hitSize = gp.tileSize / 2;
         int hitPad = gp.tileSize / 4;
 
@@ -46,16 +51,14 @@ public class Chef extends Entity {
     }
 
     public void setDefaultValues() {
-        speed = 4; // Scale 4 -> Speed 4 (Pas)
+        speed = 4;
         direction = "down";
         this.heldItem = null;
         this.isBusy = false;
         this.moving = false;
 
-        if (playerID == 1)
-            chefColor = Color.RED;
-        else
-            chefColor = Color.BLUE;
+        if (playerID == 1) chefColor = Color.RED;
+        else chefColor = Color.BLUE;
     }
 
     public void setDefaultValues(int startCol, int startRow) {
@@ -65,59 +68,36 @@ public class Chef extends Entity {
     }
 
     public void update(KeyHandler inputKeyH) {
+        if (inputKeyH == null) return;
+        if (isBusy) return;
 
-        // [LOGIC SWAP]
-        // Jika inputKeyH NULL, artinya Chef ini SEDANG TIDAK AKTIF.
-        // Maka dia tidak melakukan apa-apa (Diam).
-        if (inputKeyH == null)
-            return;
-
-        if (isBusy)
-            return;
-
-        // [FIX] SEMUA CHEF PAKAI TOMBOL YANG SAMA (WASD)
-        // Karena GamePanel hanya mengirim inputKeyH ke Chef yang sedang AKTIF.
         boolean up = inputKeyH.upPressed;
         boolean down = inputKeyH.downPressed;
         boolean left = inputKeyH.leftPressed;
         boolean right = inputKeyH.rightPressed;
         boolean dash = inputKeyH.dashPressed;
-        boolean interact = inputKeyH.interactPressed;
+        
+        // --- INPUT BARU: SPACE & E ---
+        boolean grab = inputKeyH.interactPressed; // SPACE
+        boolean use = inputKeyH.usePressed;       // E
 
         int currentSpeed = dash ? 8 : speed;
         boolean wantsToMove = false;
 
-        if (up) {
-            direction = "up";
-            wantsToMove = true;
-        } else if (down) {
-            direction = "down";
-            wantsToMove = true;
-        } else if (left) {
-            direction = "left";
-            wantsToMove = true;
-        } else if (right) {
-            direction = "right";
-            wantsToMove = true;
-        }
+        if (up) { direction = "up"; wantsToMove = true; }
+        else if (down) { direction = "down"; wantsToMove = true; }
+        else if (left) { direction = "left"; wantsToMove = true; }
+        else if (right) { direction = "right"; wantsToMove = true; }
 
         int nextX = x;
         int nextY = y;
 
         if (wantsToMove) {
             switch (direction) {
-                case "up":
-                    nextY -= currentSpeed;
-                    break;
-                case "down":
-                    nextY += currentSpeed;
-                    break;
-                case "left":
-                    nextX -= currentSpeed;
-                    break;
-                case "right":
-                    nextX += currentSpeed;
-                    break;
+                case "up": nextY -= currentSpeed; break;
+                case "down": nextY += currentSpeed; break;
+                case "left": nextX -= currentSpeed; break;
+                case "right": nextX += currentSpeed; break;
             }
         }
 
@@ -141,24 +121,32 @@ public class Chef extends Entity {
 
         moving = moved;
 
-        if (!wantsToMove || !moving) {
-            updateIdleAnimation();
-        } else {
-            advanceWalkAnimation();
+        if (!wantsToMove || !moving) updateIdleAnimation();
+        else advanceWalkAnimation();
+
+        // --- INTERAKSI (DEBOUNCED) ---
+        
+        // GRAB (Space) - Hanya sekali tekan
+        if (grab && !prevGrabPressed) {
+            interact("grab");
+        }
+        
+        // USE (E) - Bisa ditahan (untuk Cutting) atau sekali tekan (untuk Stove)
+        if (use) {
+            // Kita panggil terus menerus (CuttingStation butuh ini)
+            // Untuk Stove, kita handle di dalam CookingStation biar gak spam start
+            interact("use");
         }
 
-        if (interact) {
-            interact();
-            // Reset tombol di KeyHandler biar gak spam
-            inputKeyH.interactPressed = false;
-        }
+        // Update status tombol sebelumnya
+        prevGrabPressed = grab;
+        prevUsePressed = use;
     }
 
     @Override
-    public void update() {
-    }
+    public void update() {}
 
-    public void interact() {
+    public void interact(String type) {
         int centerX = this.x + gp.tileSize / 2;
         int centerY = this.y + gp.tileSize / 2;
         int reach = gp.tileSize / 2 + 10;
@@ -167,68 +155,67 @@ public class Chef extends Entity {
         int sensorY = centerY;
 
         switch (direction) {
-            case "up":
-                sensorY -= reach;
-                break;
-            case "down":
-                sensorY += reach;
-                break;
-            case "left":
-                sensorX -= reach;
-                break;
-            case "right":
-                sensorX += reach;
-                break;
+            case "up": sensorY -= reach; break;
+            case "down": sensorY += reach; break;
+            case "left": sensorX -= reach; break;
+            case "right": sensorX += reach; break;
         }
 
         int targetCol = sensorX / gp.tileSize;
         int targetRow = sensorY / gp.tileSize;
 
+        // Cari Station di depan muka
+        Station targetStation = null;
         for (int i = 0; i < gp.station.length; i++) {
             if (gp.station[i] != null) {
                 if (gp.station[i].getPosX() == targetCol && gp.station[i].getPosY() == targetRow) {
-                    System.out.println("✅ P" + playerID + " INTERAKSI: " + gp.station[i].getName());
-                    gp.station[i].interact(this);
-                    return;
+                    targetStation = gp.station[i];
+                    break;
                 }
             }
         }
 
-        if (gp != null) {
+        // Kalau ada station, panggil method yang sesuai
+        if (targetStation != null) {
+            if (type.equals("grab")) {
+                // System.out.println("🖐️ GRAB: " + targetStation.getName());
+                targetStation.interactGrab(this);
+            } else if (type.equals("use")) {
+                // System.out.println("🔨 USE: " + targetStation.getName());
+                targetStation.interactUse(this);
+            }
+            return;
+        }
+
+        // Drop di lantai (Hanya Grab)
+        if (gp != null && type.equals("grab")) {
             if (hasItem()) {
                 gp.pushTilePopup(targetCol, targetRow, heldItem, null, "Put down?", null, new Color(255, 193, 7));
             } else {
-                gp.pushTilePopup(targetCol, targetRow, null, null, "Nothing here", "Try a station",
-                        new Color(255, 193, 7));
+                gp.pushTilePopup(targetCol, targetRow, null, null, "Nothing here", "Try a station", new Color(255, 193, 7));
             }
         }
     }
 
+    // ... (Sisa method draw, getter/setter sama persis) ...
     @Override
     public void draw(Graphics2D g2) {
         BufferedImage sprite = getCurrentSprite();
         if (sprite != null) {
             g2.drawImage(sprite, x, y, gp.tileSize, gp.tileSize, null);
         } else {
-            // Fallback to colored block if asset missing
             int padding = 8;
             int drawSize = gp.tileSize - (padding * 2);
             int drawX = x + padding;
             int drawY = y + padding;
-
             g2.setColor(chefColor);
             g2.fillRect(drawX, drawY, drawSize, drawSize);
-
             g2.setColor(Color.WHITE);
             int eyeSize = 6;
-            if (direction.equals("up"))
-                g2.fillRect(drawX + drawSize / 2 - 8, drawY + 2, 16, eyeSize);
-            if (direction.equals("down"))
-                g2.fillRect(drawX + drawSize / 2 - 8, drawY + drawSize - 8, 16, eyeSize);
-            if (direction.equals("left"))
-                g2.fillRect(drawX + 2, drawY + drawSize / 2 - 8, eyeSize, 16);
-            if (direction.equals("right"))
-                g2.fillRect(drawX + drawSize - 8, drawY + drawSize / 2 - 8, eyeSize, 16);
+            if (direction.equals("up")) g2.fillRect(drawX + drawSize / 2 - 8, drawY + 2, 16, eyeSize);
+            if (direction.equals("down")) g2.fillRect(drawX + drawSize / 2 - 8, drawY + drawSize - 8, 16, eyeSize);
+            if (direction.equals("left")) g2.fillRect(drawX + 2, drawY + drawSize / 2 - 8, eyeSize, 16);
+            if (direction.equals("right")) g2.fillRect(drawX + drawSize - 8, drawY + drawSize / 2 - 8, eyeSize, 16);
         }
 
         g2.setColor(Color.WHITE);
@@ -252,20 +239,12 @@ public class Chef extends Entity {
     }
 
     private BufferedImage[] toFrameArray(Map<String, BufferedImage> frames) {
-        if (frames == null || frames.isEmpty()) {
-            return null;
-        }
+        if (frames == null || frames.isEmpty()) return null;
         BufferedImage first = frames.get("left");
         BufferedImage second = frames.get("right");
-        if (first == null && second == null) {
-            return null;
-        }
-        if (first == null) {
-            first = second;
-        }
-        if (second == null) {
-            second = first;
-        }
+        if (first == null && second == null) return null;
+        if (first == null) first = second;
+        if (second == null) second = first;
         return new BufferedImage[] { first, second };
     }
 
@@ -276,20 +255,14 @@ public class Chef extends Entity {
             if (frames != null) {
                 int index = (spriteNum == 1) ? 0 : 1;
                 BufferedImage frame = frames[index];
-                if (frame != null) {
-                    return frame;
-                }
+                if (frame != null) return frame;
             }
         }
-
         if (standingSprites != null) {
             BufferedImage sprite = standingSprites.get(facing);
-            if (sprite == null) {
-                sprite = standingSprites.get("down");
-            }
+            if (sprite == null) sprite = standingSprites.get("down");
             return sprite;
         }
-
         return null;
     }
 
@@ -307,36 +280,12 @@ public class Chef extends Entity {
         spriteNum = 1;
     }
 
-    // Getters & Setters
-    public String getName() {
-        return name;
-    }
-
-    public Item getHeldItem() {
-        return heldItem;
-    }
-
-    public void setHeldItem(Item item) {
-        this.heldItem = item;
-    }
-
-    public boolean hasItem() {
-        return heldItem != null;
-    }
-
-    public String getDirection() {
-        return direction;
-    }
-
-    public boolean isBusy() {
-        return isBusy;
-    }
-
-    public void setBusy(boolean busy) {
-        this.isBusy = busy;
-    }
-
-    public int getPlayerID() {
-        return playerID;
-    }
+    public String getName() { return name; }
+    public Item getHeldItem() { return heldItem; }
+    public void setHeldItem(Item item) { this.heldItem = item; }
+    public boolean hasItem() { return heldItem != null; }
+    public String getDirection() { return direction; }
+    public boolean isBusy() { return isBusy; }
+    public void setBusy(boolean busy) { this.isBusy = busy; }
+    public int getPlayerID() { return playerID; }
 }

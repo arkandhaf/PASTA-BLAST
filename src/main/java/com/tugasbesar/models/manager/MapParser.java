@@ -13,6 +13,8 @@ import java.util.List;
 import com.tugasbesar.core.GamePanel;
 import com.tugasbesar.models.stations.*;
 import com.tugasbesar.models.actors.Chef;
+import com.tugasbesar.models.item.kitchen_utensil.BoilingPot; // Panci
+import com.tugasbesar.models.item.kitchen_utensil.FryingPan;  // Wajan [BARU]
 
 public class MapParser {
 
@@ -33,8 +35,7 @@ public class MapParser {
                 fullPath = projectPath + "/src/resources/assets/maps/" + filename;
                 file = new File(fullPath);
             }
-            if (!file.exists())
-                return;
+            if (!file.exists()) return;
 
             InputStream is = new FileInputStream(file);
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -44,8 +45,7 @@ public class MapParser {
             mapLayout.clear();
 
             while ((line = br.readLine()) != null) {
-                if (line.trim().isEmpty())
-                    continue;
+                if (line.trim().isEmpty()) continue;
                 List<Character> mapRow = new ArrayList<>();
                 char[] chars = line.toCharArray();
                 for (int col = 0; col < chars.length; col++) {
@@ -63,77 +63,58 @@ public class MapParser {
                 row++;
             }
             br.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
     private void createStation(char c, int x, int y, int index) {
         switch (c) {
-            case 'A':
-                gp.station[index] = new AssemblyStation(x, y);
-                break;
-            case 'R':
-                gp.station[index] = new CookingStation(x, y);
-                break;
-            case 'C':
-                gp.station[index] = new CuttingStation(x, y);
-                break;
-            case 'W':
-                gp.station[index] = new WashingStation(x, y);
-                break;
-            case 'S':
-            case 'V':
-                gp.station[index] = new ServingStation(x, y, gp);
-                break;
-            case 'P':
-                gp.station[index] = new PlateStorage(x, y);
-                break;
-            case 'T':
-                gp.station[index] = new TrashStation(x, y);
+            case 'A': gp.station[index] = new AssemblyStation(x, y); break;
+            
+            // 'R' = REBUS (BOILING POT)
+            case 'R': 
+                CookingStation stoveBoil = new CookingStation(x, y);
+                stoveBoil.placeItem(new BoilingPot()); 
+                gp.station[index] = stoveBoil; 
                 break;
 
-            // Ingredients
-            case 'J':
-                gp.station[index] = new IngredientStorage(x, y, "Pasta");
+            // 'K' = GORENG/COOK (FRYING PAN)
+            case 'K': 
+                CookingStation stoveFry = new CookingStation(x, y);
+                stoveFry.placeItem(new FryingPan());   
+                gp.station[index] = stoveFry; 
                 break;
-            case 'I':
-                gp.station[index] = new IngredientStorage(x, y, "Tomato");
-                break;
-            case 'B':
-                gp.station[index] = new IngredientStorage(x, y, "Beef");
-                break;
-            case 'F':
-                gp.station[index] = new IngredientStorage(x, y, "Fish");
-                break;
-            case 'L':
-                gp.station[index] = new IngredientStorage(x, y, "Shrimp");
-                break;
+                
+            case 'C': gp.station[index] = new CuttingStation(x, y); break;
+            case 'W': gp.station[index] = new WashingStation(x, y); break;
+            case 'S':
+            case 'V': gp.station[index] = new ServingStation(x, y, gp); break;
+            case 'P': gp.station[index] = new PlateStorage(x, y); break;
+            case 'T': gp.station[index] = new TrashStation(x, y); break;
+
+            case 'J': gp.station[index] = new IngredientStorage(x, y, "Pasta"); break;
+            case 'I': gp.station[index] = new IngredientStorage(x, y, "Tomato"); break;
+            case 'B': gp.station[index] = new IngredientStorage(x, y, "Beef"); break;
+            case 'F': gp.station[index] = new IngredientStorage(x, y, "Fish"); break;
+            case 'L': gp.station[index] = new IngredientStorage(x, y, "Shrimp"); break;
 
             case 'X':
                 gp.station[index] = new Station(x, y, "Wall", "X") {
-                    @Override
-                    public void interact(Chef c) {
-                    }
+                    @Override public void interactGrab(Chef c) {} 
+                    @Override public void interactUse(Chef c) {}
                 };
                 break;
 
-            default:
-                gp.station[index] = null;
-                break;
+            default: gp.station[index] = null; break;
         }
     }
 
     public void draw(Graphics2D g2) {
-        if (mapLayout == null)
-            return;
+        if (mapLayout == null) return;
         int tileSize = gp.tileSize;
         for (int row = 0; row < mapLayout.size(); row++) {
             for (int col = 0; col < mapLayout.get(row).size(); col++) {
-                if ((col + row) % 2 == 0)
-                    g2.setColor(new Color(100, 100, 100));
-                else
-                    g2.setColor(new Color(80, 80, 80));
+                if ((col + row) % 2 == 0) g2.setColor(new Color(100, 100, 100));
+                else g2.setColor(new Color(80, 80, 80));
                 g2.fillRect(col * tileSize, row * tileSize, tileSize, tileSize);
                 g2.setColor(Color.BLACK);
                 g2.drawRect(col * tileSize, row * tileSize, tileSize, tileSize);

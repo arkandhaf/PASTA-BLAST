@@ -26,13 +26,12 @@ public class GamePanel extends JPanel implements Runnable {
 
     // --- SCREEN SETTINGS ---
     final int originalTileSize = 16;
-    final int scale = 3; // 48px (Ukuran Stabil)
+    final int scale = 3; // 48px
     public final int tileSize = originalTileSize * scale;
 
-    // UKURAN MAP ASLI (14x10) + Sidebar Area (Total 20 Kolom)
     public final int maxMapCol = 14; 
     public final int maxMapRow = 10;
-    public final int maxScreenCol = 20; // 14 Map + 6 Sidebar/Space
+    public final int maxScreenCol = 20; 
     public final int maxScreenRow = 10;
 
     public final int screenWidth = tileSize * maxScreenCol;
@@ -47,13 +46,14 @@ public class GamePanel extends JPanel implements Runnable {
     public final int titleState = 0;
     public final int playState = 1;
     public final int pauseState = 2;
-    public final int resultState = 3;      // [MENU] Result Screen
-    public final int stageSelectState = 4; // [MENU] Stage Select
-    public final int howToPlayState = 5;   // [MENU] How to Play
+    public final int resultState = 3;      
+    public final int stageSelectState = 4; 
+    public final int howToPlayState = 5;   
 
     // --- INPUT & COLLISION ---
     public KeyHandler keyH = new KeyHandler(this);
     public CollisionChecker cChecker = new CollisionChecker(this);
+    public MouseHandler mouseH = new MouseHandler(); // Mouse Handler
 
     // --- GAME DATA ---
     public int gameTime = 180;
@@ -70,10 +70,8 @@ public class GamePanel extends JPanel implements Runnable {
     // --- MANAGERS & RENDERERS ---
     public MapParser mapParser = new MapParser(this);
     public OrderManager orderManager = OrderManager.getInstance();
-    public TileManager tileManager;         // Visual Lantai (Punya Teman)
-    public StationRenderer stationRenderer; // Visual Station (Punya Teman)
-    
-    // [MENU] UI MANAGER (Punya Kamu)
+    public TileManager tileManager;         
+    public StationRenderer stationRenderer; 
     public UI ui = new UI(this);
 
     // --- STAGE DATA ---
@@ -85,72 +83,54 @@ public class GamePanel extends JPanel implements Runnable {
     public boolean[] stageCleared = {false, false, false};
     public int currentStageIdx = 0;
 
-    // --- VISUAL EXTRAS (Popups & Overlays) ---
+    // --- VISUAL EXTRAS ---
     private HeldItemNotification[] heldItemPopups;
     private static final int HELD_ITEM_POPUP_DURATION = 150;
     private final List<TilePopup> tilePopups;
     private final BufferedImage pauseOverlayImage;
-    // gameOverOverlayImage dihapus karena kita pakai resultState UI
-
-    // DEKLARAIS MOUSE 
-    public MouseHandler mouseH = new MouseHandler();
-
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         this.setBackground(Color.BLACK);
         this.setDoubleBuffered(true);
+        
+        // --- [FIX] LISTENER WAJIB ---
         this.addKeyListener(keyH);
-        // Listener Mouse di Constructor
-        this.addMouseListener(mouseH); // [BARU] Detect Klik
-        this.addMouseMotionListener(mouseH); // [BARU] Detect Gerakan Cursor
+        this.addMouseListener(mouseH);       // Detect Click
+        this.addMouseMotionListener(mouseH); // Detect Gerakan Cursor
+        // ----------------------------
         
         this.setFocusable(true);
 
-        // Init Renderers
         tileManager = new TileManager(this);
         stationRenderer = new StationRenderer(this);
 
         chef1 = new Chef(this, keyH, "P1", 1);
         chef2 = new Chef(this, keyH, "P2", 2);
 
-        // Spawn Points Aman (Di Lantai)
         chef1.setDefaultValues(2, 2);
         chef2.setDefaultValues(10, 2);
 
-        // Init Popups
         heldItemPopups = new HeldItemNotification[] { new HeldItemNotification(), new HeldItemNotification() };
         tilePopups = new ArrayList<>();
 
-        // Init Assets Overlay
         AssetManager assetManager = AssetManager.getInstance();
         BufferedImage pauseImage = assetManager.loadUIImage("paused");
         pauseOverlayImage = (pauseImage != null) ? pauseImage : assetManager.loadUIImage("pause");
         
-        gameState = titleState; // Mulai dari Main Menu
-
-        // Listener Mouse di Constructor
-        this.addMouseListener(mouseH);
-
+        gameState = titleState; 
     }
 
-    // --- GAME FLOW METHODS ---
-
     public void setupGame() {
-        // Load map berdasarkan stage yang dipilih
         String mapFile = stageData[currentStageIdx][0];
         mapParser.loadMap(mapFile);
     }
 
     public void retryGame() {
         gameTime = 180;
-        
-        // Pastikan OrderManager punya method resetScore()
         if(orderManager != null) orderManager.resetScore();
-        
         chef1.setDefaultValues(2, 2);
         chef2.setDefaultValues(10, 2);
-        
         setupGame();
         gameState = playState;
     }
@@ -171,7 +151,7 @@ public class GamePanel extends JPanel implements Runnable {
                     if (gameState == playState && gameTime > 0)
                         gameTime--;
                     else if (gameState == playState && gameTime <= 0)
-                        gameState = resultState; // Waktu habis -> Result Screen
+                        gameState = resultState; 
                 } catch (Exception e) {}
             }
         }).start();
@@ -198,13 +178,11 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void update() {
         if (gameState == playState) {
-            // Swap Logic
             if (keyH.turnSwapPressed) {
                 activePlayerID = (activePlayerID == 1) ? 2 : 1;
                 keyH.turnSwapPressed = false;
             }
 
-            // Chef Update (Hanya yang aktif)
             if (activePlayerID == 1) {
                 chef1.update(keyH);
                 chef2.update(null);
@@ -213,15 +191,12 @@ public class GamePanel extends JPanel implements Runnable {
                 chef2.update(keyH);
             }
 
-            // Station Update
             for (int i = 0; i < station.length; i++) {
                 if (station[i] != null) station[i].update();
             }
 
-            // Order Manager Update
             if (orderManager != null) orderManager.update();
 
-            // Popups Update
             updateHeldItemPopup(chef1, heldItemPopups[0]);
             updateHeldItemPopup(chef2, heldItemPopups[1]);
             updateTilePopups();
@@ -232,14 +207,11 @@ public class GamePanel extends JPanel implements Runnable {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
         
-        // Rendering Optimization settings
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
 
-        // --- STATE ROUTING ---
-        
-        // 1. MENU STATES (Digambar oleh UI.java)
+        // ROUTING MENU
         if (gameState == titleState) {
             ui.draw(g2);
         } 
@@ -249,15 +221,12 @@ public class GamePanel extends JPanel implements Runnable {
         else if (gameState == howToPlayState) {
             ui.draw(g2);
         }
-        // 2. RESULT STATE (Game di background + Overlay Menu)
         else if (gameState == resultState) {
             drawGameplay(g2);
             ui.draw(g2);
         }
-        // 3. GAMEPLAY & PAUSE
         else {
             drawGameplay(g2);
-            
             if (gameState == pauseState) {
                 drawOverlay(g2, "PAUSED", pauseOverlayImage);
             }
@@ -266,28 +235,22 @@ public class GamePanel extends JPanel implements Runnable {
         g2.dispose();
     }
 
-    // --- HELPER: MENGGAMBAR ELEMEN GAMEPLAY ---
     private void drawGameplay(Graphics2D g2) {
-        // 1. Map & Tiles (Pakai TileManager temanmu)
         if (tileManager != null && mapParser != null)
             tileManager.drawMap(g2, mapParser.mapLayout);
 
         drawStations(g2);
 
-        // 2. Chefs
         chef1.draw(g2);
         chef2.draw(g2);
 
-        // 3. HUD (Timer & Score)
         int hudBottom = drawTopHud(g2, 20, 30);
 
-        // 4. Order List
         if (orderManager != null) {
             int orderStartY = Math.max(hudBottom + 10, 60);
             orderManager.draw(g2, 20, orderStartY);
         }
 
-        // 5. Message Tengah Layar
         if (messageOn) {
             g2.setFont(new Font("Arial", Font.BOLD, 30));
             g2.setColor(Color.YELLOW);
@@ -299,10 +262,8 @@ public class GamePanel extends JPanel implements Runnable {
             }
         }
 
-        // 6. Visual Effects (Popups)
         drawTilePopups(g2);
 
-        // 7. Indicators
         Chef activeChef = (activePlayerID == 1) ? chef1 : chef2;
         g2.setColor(Color.YELLOW);
         g2.setFont(new Font("Arial", Font.BOLD, 10));
@@ -312,8 +273,7 @@ public class GamePanel extends JPanel implements Runnable {
         drawHeldItemPopup(g2, heldItemPopups[1], screenWidth - 200, screenHeight - 90, "P2");
     }
 
-    // --- METHODS BAWAAN VISUAL (DARI KODE TEMANMU) ---
-    // (Render Helper, Popups, etc)
+    // --- Helper Methods (Render & Logic) ---
 
     private void drawOverlay(Graphics2D g2, String fallbackText, BufferedImage overlayImage) {
         g2.setColor(new Color(0, 0, 0, 150));
