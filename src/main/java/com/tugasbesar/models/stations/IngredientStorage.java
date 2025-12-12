@@ -3,10 +3,11 @@ package com.tugasbesar.models.stations;
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.abstracts.Item;
 import com.tugasbesar.models.item.IngredientFactory;
+import java.awt.Color;
 
 public class IngredientStorage extends Station {
-    
-    private String ingredientName; 
+
+    private String ingredientName;
 
     public IngredientStorage(int x, int y, String ingredientName) {
         super(x, y, "Storage: " + ingredientName, "I");
@@ -18,39 +19,42 @@ public class IngredientStorage extends Station {
         // 1. AMBIL BAHAN (Kalau tangan kosong)
         if (!chef.hasItem()) {
             Item newItem = createNewIngredient();
-            
+
             if (newItem != null) {
                 chef.setHeldItem(newItem);
                 System.out.println("📦 [Storage] Mengambil " + newItem.getName());
+                notifyInteraction(newItem, "Picked " + newItem.getName(), new Color(76, 175, 80));
             } else {
                 System.out.println("❌ Error: Bahan '" + ingredientName + "' tidak ditemukan di Factory.");
+                notifyInteraction("Missing " + ingredientName, new Color(244, 67, 54));
             }
-        } 
+        }
         // 2. STORAGE TIDAK MENERIMA BARANG
         else {
             System.out.println("⚠️ [Storage] Tangan penuh! Taruh dulu itemmu.");
+            notifyInteraction("Hands Full", new Color(255, 193, 7));
         }
     }
 
     // --- MENGHUBUNGKAN STRING DARI MAP KE FACTORY ---
     private Item createNewIngredient() {
         switch (ingredientName.toLowerCase()) {
-            case "tomato": 
+            case "tomato":
                 return IngredientFactory.createTomato();
-            
-            case "beef":   
+
+            case "beef":
                 return IngredientFactory.createBeef();
-            
-            case "pasta":  
+
+            case "pasta":
                 return IngredientFactory.createPasta();
-            
-            case "fish":   
+
+            case "fish":
                 return IngredientFactory.createFish();
-            
-            case "shrimp": 
+
+            case "shrimp":
                 return IngredientFactory.createShrimp();
-                
-            default: 
+
+            default:
                 return null;
         }
     }

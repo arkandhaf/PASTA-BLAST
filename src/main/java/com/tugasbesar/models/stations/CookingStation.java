@@ -53,8 +53,10 @@ public class CookingStation extends Station {
                     cookedAlertShown = false;
                     burnAlertShown = false;
                     System.out.println("🔥 [Stove] Mulai memasak " + ing.getName());
+                    notifyInteraction(ing, "Cooking...", new Color(255, 152, 0));
                 } else {
                     System.out.println("⚠️ [Stove] Bahan ini belum siap dimasak (Mungkin harus dipotong dulu?)");
+                    notifyInteraction(ing, "Needs prep", new Color(255, 193, 7));
                 }
             }
             return;
@@ -72,6 +74,7 @@ public class CookingStation extends Station {
             cookedAlertShown = false;
             burnAlertShown = false;
             System.out.println("⬆️ [Stove] Mengambil masakan.");
+            notifyInteraction(chef.getHeldItem(), "Picked", new Color(255, 193, 7));
         }
 
         // 3. PLATING (Piring Ambil Makanan)
@@ -100,8 +103,10 @@ public class CookingStation extends Station {
                     cookedAlertShown = false;
                     burnAlertShown = false;
                     System.out.println("🍽️ [Stove] Berhasil memindahkan " + takenItem.getName() + " ke Piring.");
+                    notifyInteraction(takenItem, "Plated", new Color(3, 169, 244));
                 } else {
                     System.out.println("⚠️ [Stove] Piring menolak item ini (Mungkin belum COOKED?)");
+                    notifyInteraction(food, "Not ready", new Color(244, 67, 54));
                 }
             }
             return;
@@ -149,9 +154,7 @@ public class CookingStation extends Station {
     }
 
     private void triggerAlert(String message, Color accent, Ingredient ingredient) {
-        if (gamePanel != null) {
-            gamePanel.pushCookingAlert(posX, posY, ingredient, message, accent);
-        }
+        notifyInteraction(ingredient, message, accent);
     }
 
     @Override

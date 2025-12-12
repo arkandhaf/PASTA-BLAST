@@ -69,6 +69,16 @@ public abstract class Station {
         this.gamePanel = gamePanel;
     }
 
+    protected void notifyInteraction(Item item, String message, Color accent) {
+        if (gamePanel != null) {
+            gamePanel.pushStationFeedback(this, item, message, accent);
+        }
+    }
+
+    protected void notifyInteraction(String message, Color accent) {
+        notifyInteraction(null, message, accent);
+    }
+
     // --- Default Interact ---
     protected void defaultInteract(Chef chef) {
         Item hand = chef.getHeldItem();
@@ -77,9 +87,11 @@ public abstract class Station {
             placeItem(hand);
             chef.setHeldItem(null);
             System.out.println("⬇️ [Action] Menaruh " + itemOnStation.getName() + " di " + name);
+            notifyInteraction(itemOnStation, "Placed", new Color(0, 188, 212));
         } else if (hand == null && !isEmpty()) {
             chef.setHeldItem(takeItem());
             System.out.println("⬆️ [Action] Mengambil " + chef.getHeldItem().getName() + " dari " + name);
+            notifyInteraction(chef.getHeldItem(), "Picked", new Color(255, 193, 7));
         }
     }
 

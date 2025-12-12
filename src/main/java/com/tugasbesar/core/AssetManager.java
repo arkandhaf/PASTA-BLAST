@@ -30,6 +30,7 @@ public class AssetManager {
     private static final Map<String, String> INGREDIENT_ICON_MAP;
     private static final Map<String, String> DISH_ICON_MAP;
     private static final Map<String, String> UTENSIL_ICON_MAP;
+    private static final Map<String, String> STATION_ICON_MAP;
 
     private AssetManager() {
         this.imageCache = new HashMap<>();
@@ -57,6 +58,23 @@ public class AssetManager {
         utensils.put("Frying Pan", "frying_pan");
         utensils.put("Plate", "empty_plate");
         UTENSIL_ICON_MAP = Map.copyOf(utensils);
+
+        Map<String, String> stations = new HashMap<>();
+        stations.put("A", "assembly");
+        stations.put("C", "cutting");
+        stations.put("K", "cooking");
+        stations.put("R", "cooking");
+        stations.put("I", "ingredient");
+        stations.put("J", "ingredient");
+        stations.put("B", "ingredient");
+        stations.put("F", "ingredient");
+        stations.put("L", "ingredient");
+        stations.put("P", "plate");
+        stations.put("S", "serving");
+        stations.put("V", "serving");
+        stations.put("T", "trash");
+        stations.put("W", "washing");
+        STATION_ICON_MAP = Map.copyOf(stations);
     }
 
     public static AssetManager getInstance() {
@@ -253,6 +271,17 @@ public class AssetManager {
         }
 
         return loadImage(relativePath);
+    }
+
+    public BufferedImage getStationIcon(String symbol) {
+        if (symbol == null) {
+            return null;
+        }
+        String key = STATION_ICON_MAP.get(symbol.toUpperCase());
+        if (key == null) {
+            return null;
+        }
+        return loadStation(key);
     }
 
     private String resolveIconPath(Item item) {

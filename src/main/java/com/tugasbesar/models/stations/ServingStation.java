@@ -2,7 +2,7 @@ package com.tugasbesar.models.stations;
 
 import com.tugasbesar.models.actors.Chef;
 import com.tugasbesar.models.item.kitchen_utensil.Plate;
-import com.tugasbesar.core.GamePanel; 
+import com.tugasbesar.core.GamePanel;
 import com.tugasbesar.models.manager.OrderManager;
 import com.tugasbesar.models.abstracts.Item;
 
@@ -15,7 +15,7 @@ import java.util.Stack;
 
 public class ServingStation extends Station {
 
-    private GamePanel gp; 
+    private GamePanel gp;
     private List<Integer> eatingTimers;
     private Stack<Plate> dirtyPlateReturn;
 
@@ -40,26 +40,34 @@ public class ServingStation extends Station {
 
             if (plate.getContents().isEmpty()) {
                 System.out.println("❌ GAGAL: Piring terdeteksi KOSONG secara data.");
-                if(gp != null) gp.showMessage("Piring Kosong!");
+                if (gp != null)
+                    gp.showMessage("Piring Kosong!");
+                notifyInteraction(plate, "Empty plate", new Color(244, 67, 54));
                 return;
             }
             if (plate.isDirty()) {
                 System.out.println("❌ GAGAL: Piring KOTOR.");
-                if(gp != null) gp.showMessage("Piring Kotor!");
+                if (gp != null)
+                    gp.showMessage("Piring Kotor!");
+                notifyInteraction(plate, "Dirty plate", new Color(244, 67, 54));
                 return;
             }
-            
+
             // Cek Resep
             boolean isSuccess = OrderManager.getInstance().checkDish(plate);
-            
+
             if (isSuccess) {
-                if(gp != null) gp.showMessage("✅ BENAR! (+20)");
+                if (gp != null)
+                    gp.showMessage("✅ BENAR! (+20)");
                 System.out.println("✅ SUKSES: Order ditemukan dan cocok!");
-                chef.setHeldItem(null); 
-                eatingTimers.add(300); 
+                notifyInteraction(plate, "Served!", new Color(76, 175, 80));
+                chef.setHeldItem(null);
+                eatingTimers.add(300);
             } else {
-                if(gp != null) gp.showMessage("❌ SALAH RESEP!");
+                if (gp != null)
+                    gp.showMessage("❌ SALAH RESEP!");
                 System.out.println("❌ GAGAL: Tidak ada Order yang cocok dengan isi piringmu.");
+                notifyInteraction(plate, "Wrong order", new Color(244, 67, 54));
             }
             System.out.println("--- 🛑 SERVING DEBUG END 🛑 ---\n");
             return;
@@ -70,8 +78,10 @@ public class ServingStation extends Station {
             if (!dirtyPlateReturn.isEmpty()) {
                 chef.setHeldItem(dirtyPlateReturn.pop());
                 System.out.println("🤢 Mengambil Piring Kotor.");
+                notifyInteraction(chef.getHeldItem(), "Dirty plate", new Color(244, 143, 177));
             } else {
                 System.out.println("⚠️ Belum ada piring kotor.");
+                notifyInteraction("No dirty plates", new Color(255, 193, 7));
             }
             return;
         }
@@ -91,6 +101,7 @@ public class ServingStation extends Station {
                     p.markDirty();
                     dirtyPlateReturn.push(p);
                     System.out.println("🛎️ Pelanggan selesai makan (Piring kotor muncul).");
+                    notifyInteraction(p, "Dirty plate", new Color(244, 143, 177));
                 }
             }
         }
@@ -98,11 +109,11 @@ public class ServingStation extends Station {
 
     @Override
     public void draw(Graphics2D g2) {
-        super.draw(g2); 
+        super.draw(g2);
         if (!dirtyPlateReturn.isEmpty()) {
             int count = Math.min(dirtyPlateReturn.size(), 3);
-            for(int i = 0; i < count; i++) {
-                g2.setColor(new Color(139, 69, 19)); 
+            for (int i = 0; i < count; i++) {
+                g2.setColor(new Color(139, 69, 19));
                 g2.fillOval(posX * 48 + 10, posY * 48 + 10 - (i * 3), 28, 28);
                 g2.setColor(Color.BLACK);
                 g2.drawOval(posX * 48 + 10, posY * 48 + 10 - (i * 3), 28, 28);

@@ -193,6 +193,15 @@ public class Chef extends Entity {
                 }
             }
         }
+
+        if (gp != null) {
+            if (hasItem()) {
+                gp.pushTilePopup(targetCol, targetRow, heldItem, null, "Put down?", null, new Color(255, 193, 7));
+            } else {
+                gp.pushTilePopup(targetCol, targetRow, null, null, "Nothing here", "Try a station",
+                        new Color(255, 193, 7));
+            }
+        }
     }
 
     @Override

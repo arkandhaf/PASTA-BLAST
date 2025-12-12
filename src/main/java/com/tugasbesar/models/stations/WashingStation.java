@@ -14,7 +14,7 @@ public class WashingStation extends Station {
 
     // Logic Cuci
     private boolean isWashing = false;
-    private int washProgress = 0; 
+    private int washProgress = 0;
     private final int WASH_SPEED = 2; // Kecepatan cuci per frame
 
     public WashingStation(int x, int y) {
@@ -25,20 +25,23 @@ public class WashingStation extends Station {
 
     @Override
     public void interact(Chef chef) {
-        
+
         // 1. TARUH PIRING KOTOR (Input)
         if (chef.hasItem() && chef.getHeldItem() instanceof Plate) {
             Plate p = (Plate) chef.getHeldItem();
-            
-            // Piring dianggap kotor jika statusnya dirty ATAU masih ada isinya (sisa makanan)
+
+            // Piring dianggap kotor jika statusnya dirty ATAU masih ada isinya (sisa
+            // makanan)
             if (p.isDirty() || !p.getContents().isEmpty()) {
                 p.clearContents(); // Kosongkan sisa makanan sebelum ditumpuk
                 dirtyPlates.push(p);
                 chef.setHeldItem(null); // Piring pindah ke tumpukan, tangan kosong
                 System.out.println("💧 [Washing] Menaruh piring kotor. (Antrian: " + dirtyPlates.size() + ")");
+                notifyInteraction(p, "Queued for wash", new Color(244, 143, 177));
                 return;
             } else {
                 System.out.println("⚠️ [Washing] Piring ini sudah bersih!");
+                notifyInteraction(p, "Already clean", new Color(129, 212, 250));
             }
         }
 
@@ -47,6 +50,7 @@ public class WashingStation extends Station {
         if (!chef.hasItem() && !cleanPlates.isEmpty()) {
             chef.setHeldItem(cleanPlates.pop());
             System.out.println("✨ [Washing] Mengambil piring bersih.");
+            notifyInteraction(chef.getHeldItem(), "Clean plate", new Color(129, 212, 250));
             return;
         }
 
@@ -54,16 +58,18 @@ public class WashingStation extends Station {
         // Syarat: Tangan kosong & Ada piring kotor & Belum mulai nyuci
         if (!chef.hasItem() && !dirtyPlates.isEmpty()) {
             this.chefAtStation = chef; // Kunci Chef di station ini
-            chef.setBusy(true);        // Chef tidak bisa gerak
+            chef.setBusy(true); // Chef tidak bisa gerak
             isWashing = true;
             System.out.println("🧼 [Washing] Mulai mencuci...");
+            notifyInteraction("Washing...", new Color(3, 169, 244));
         }
     }
 
     @Override
     public void update() {
         // Hanya update kalau ada Chef yang sedang aktif mencuci
-        if (chefAtStation == null || !isWashing) return;
+        if (chefAtStation == null || !isWashing)
+            return;
 
         // Cek kalau input habis tiba-tiba
         if (dirtyPlates.isEmpty()) {
@@ -78,17 +84,18 @@ public class WashingStation extends Station {
             Plate p = dirtyPlates.pop();
             p.clean(); // Ubah status jadi bersih (method di Plate.java)
             cleanPlates.push(p);
-            
+
             washProgress = 0;
             System.out.println("✨ [Washing] 1 Piring Selesai! (Bersih: " + cleanPlates.size() + ")");
-            
+            notifyInteraction(p, "Cleaned", new Color(76, 175, 80));
+
             // Kalau antrian habis, stop otomatis
             if (dirtyPlates.isEmpty()) {
                 stopWashing();
             }
         }
     }
-    
+
     // Helper untuk menghentikan proses cuci
     private void stopWashing() {
         isWashing = false;
@@ -98,19 +105,20 @@ public class WashingStation extends Station {
             chefAtStation = null;
         }
         System.out.println("🛑 [Washing] Selesai mencuci.");
+        notifyInteraction("Done", new Color(120, 144, 156));
     }
 
     @Override
     public void draw(Graphics2D g2) {
         super.draw(g2); // Gambar kotak dasar
-        
+
         // Visualisasi Progress Bar Biru
         if (isWashing) {
             g2.setColor(Color.BLUE);
-            int barWidth = (int)(48 * (washProgress/100.0));
+            int barWidth = (int) (48 * (washProgress / 100.0));
             g2.fillRect(posX * 48, posY * 48 - 10, barWidth, 5);
         }
-        
+
         // Indikator Tumpukan Teks
         g2.setColor(Color.WHITE);
         g2.setFont(g2.getFont().deriveFont(10f)); // Font kecil
