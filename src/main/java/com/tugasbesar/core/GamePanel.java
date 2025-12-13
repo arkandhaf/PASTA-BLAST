@@ -29,9 +29,9 @@ public class GamePanel extends JPanel implements Runnable {
     final int scale = 3; // 48px
     public final int tileSize = originalTileSize * scale;
 
-    public final int maxMapCol = 14; 
+    public final int maxMapCol = 14;
     public final int maxMapRow = 10;
-    public final int maxScreenCol = 20; 
+    public final int maxScreenCol = 20;
     public final int maxScreenRow = 10;
 
     public final int screenWidth = tileSize * maxScreenCol;
@@ -46,9 +46,9 @@ public class GamePanel extends JPanel implements Runnable {
     public final int titleState = 0;
     public final int playState = 1;
     public final int pauseState = 2;
-    public final int resultState = 3;      
-    public final int stageSelectState = 4; 
-    public final int howToPlayState = 5;   
+    public final int resultState = 3;
+    public final int stageSelectState = 4;
+    public final int howToPlayState = 5;
 
     // --- INPUT & COLLISION ---
     public KeyHandler keyH = new KeyHandler(this);
@@ -70,17 +70,17 @@ public class GamePanel extends JPanel implements Runnable {
     // --- MANAGERS & RENDERERS ---
     public MapParser mapParser = new MapParser(this);
     public OrderManager orderManager = OrderManager.getInstance();
-    public TileManager tileManager;         
-    public StationRenderer stationRenderer; 
+    public TileManager tileManager;
+    public StationRenderer stationRenderer;
     public UI ui = new UI(this);
 
     // --- STAGE DATA ---
     public String[][] stageData = {
-        {"map-type-b.txt", "100"}, // Stage 1
-        {"map-type-b.txt", "250"}, // Stage 2
-        {"map-type-b.txt", "400"}  // Stage 3
+            { "map-type-b.txt", "100" }, // Stage 1
+            { "map-type-b.txt", "250" }, // Stage 2
+            { "map-type-b.txt", "400" } // Stage 3
     };
-    public boolean[] stageCleared = {false, false, false};
+    public boolean[] stageCleared = { false, false, false };
     public int currentStageIdx = 0;
 
     // --- VISUAL EXTRAS ---
@@ -88,18 +88,20 @@ public class GamePanel extends JPanel implements Runnable {
     private static final int HELD_ITEM_POPUP_DURATION = 150;
     private final List<TilePopup> tilePopups;
     private final BufferedImage pauseOverlayImage;
+    private final BufferedImage sidebarTexture;
+    private final Color sidebarBaseColor;
 
     public GamePanel() {
         this.setPreferredSize(new Dimension(screenWidth, screenHeight));
         this.setBackground(Color.BLACK);
         this.setDoubleBuffered(true);
-        
+
         // --- [FIX] LISTENER WAJIB ---
         this.addKeyListener(keyH);
-        this.addMouseListener(mouseH);       // Detect Click
+        this.addMouseListener(mouseH); // Detect Click
         this.addMouseMotionListener(mouseH); // Detect Gerakan Cursor
         // ----------------------------
-        
+
         this.setFocusable(true);
 
         tileManager = new TileManager(this);
@@ -117,8 +119,12 @@ public class GamePanel extends JPanel implements Runnable {
         AssetManager assetManager = AssetManager.getInstance();
         BufferedImage pauseImage = assetManager.loadUIImage("paused");
         pauseOverlayImage = (pauseImage != null) ? pauseImage : assetManager.loadUIImage("pause");
-        
-        gameState = titleState; 
+        sidebarTexture = assetManager.loadTile("wall");
+        sidebarBaseColor = (sidebarTexture != null)
+                ? new Color(sidebarTexture.getRGB(sidebarTexture.getWidth() / 2, sidebarTexture.getHeight() / 2), false)
+                : new Color(0, 0, 0, 200);
+
+        gameState = titleState;
     }
 
     public void setupGame() {
@@ -128,7 +134,8 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void retryGame() {
         gameTime = 180;
-        if(orderManager != null) orderManager.resetScore();
+        if (orderManager != null)
+            orderManager.resetScore();
         chef1.setDefaultValues(2, 2);
         chef2.setDefaultValues(10, 2);
         setupGame();
@@ -151,8 +158,9 @@ public class GamePanel extends JPanel implements Runnable {
                     if (gameState == playState && gameTime > 0)
                         gameTime--;
                     else if (gameState == playState && gameTime <= 0)
-                        gameState = resultState; 
-                } catch (Exception e) {}
+                        gameState = resultState;
+                } catch (Exception e) {
+                }
             }
         }).start();
     }
@@ -192,10 +200,12 @@ public class GamePanel extends JPanel implements Runnable {
             }
 
             for (int i = 0; i < station.length; i++) {
-                if (station[i] != null) station[i].update();
+                if (station[i] != null)
+                    station[i].update();
             }
 
-            if (orderManager != null) orderManager.update();
+            if (orderManager != null)
+                orderManager.update();
 
             updateHeldItemPopup(chef1, heldItemPopups[0]);
             updateHeldItemPopup(chef2, heldItemPopups[1]);
@@ -206,7 +216,7 @@ public class GamePanel extends JPanel implements Runnable {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
-        
+
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
         g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
@@ -214,24 +224,20 @@ public class GamePanel extends JPanel implements Runnable {
         // ROUTING MENU
         if (gameState == titleState) {
             ui.draw(g2);
-        } 
-        else if (gameState == stageSelectState) {
+        } else if (gameState == stageSelectState) {
             ui.draw(g2);
-        }
-        else if (gameState == howToPlayState) {
+        } else if (gameState == howToPlayState) {
             ui.draw(g2);
-        }
-        else if (gameState == resultState) {
+        } else if (gameState == resultState) {
             drawGameplay(g2);
             ui.draw(g2);
-        }
-        else {
+        } else {
             drawGameplay(g2);
             if (gameState == pauseState) {
                 drawOverlay(g2, "PAUSED", pauseOverlayImage);
             }
         }
-        
+
         g2.dispose();
     }
 
@@ -244,11 +250,15 @@ public class GamePanel extends JPanel implements Runnable {
         chef1.draw(g2);
         chef2.draw(g2);
 
-        int hudBottom = drawTopHud(g2, 20, 30);
+        int sidebarX = tileSize * 14;
+        int sidebarWidth = screenWidth - sidebarX;
+        drawSidebarBackground(g2, sidebarX, sidebarWidth);
+
+        int hudBottom = drawTopHud(g2, sidebarX + 30, 60);
 
         if (orderManager != null) {
-            int orderStartY = Math.max(hudBottom + 10, 60);
-            orderManager.draw(g2, 20, orderStartY);
+            int orderStartY = Math.max(hudBottom + 20, 120);
+            orderManager.draw(g2, sidebarX + 30, orderStartY);
         }
 
         if (messageOn) {
@@ -285,7 +295,8 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private boolean drawOverlayImage(Graphics2D g2, BufferedImage image) {
-        if (image == null) return false;
+        if (image == null)
+            return false;
         double scale = Math.max(screenWidth / (double) image.getWidth(), screenHeight / (double) image.getHeight());
         int drawWidth = (int) Math.round(image.getWidth() * scale);
         int drawHeight = (int) Math.round(image.getHeight() * scale);
@@ -331,43 +342,80 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void drawStations(Graphics2D g2) {
-        if (stationRenderer == null) return;
+        if (stationRenderer == null)
+            return;
         for (Station value : station) {
             if (value != null) {
-                if ("X".equalsIgnoreCase(value.getSymbol())) continue;
+                if ("X".equalsIgnoreCase(value.getSymbol()))
+                    continue;
                 stationRenderer.drawStation(g2, value);
             }
         }
     }
 
+    private void drawSidebarBackground(Graphics2D g2, int startX, int width) {
+        Color originalColor = g2.getColor();
+        if (sidebarBaseColor != null) {
+            g2.setColor(sidebarBaseColor);
+            g2.fillRect(startX, 0, width, screenHeight);
+        }
+        if (sidebarTexture != null) {
+            for (int y = 0; y < screenHeight; y += tileSize) {
+                for (int x = startX; x < screenWidth; x += tileSize) {
+                    g2.drawImage(sidebarTexture, x, y, tileSize, tileSize, null);
+                }
+            }
+        } else {
+            g2.setColor(new Color(0, 0, 0, 200));
+            g2.fillRect(startX, 0, width, screenHeight);
+        }
+        g2.setColor(new Color(0, 0, 0, 140));
+        g2.fillRect(startX, 0, width, screenHeight);
+        g2.setColor(new Color(255, 255, 255, 60));
+        g2.drawLine(startX, 0, startX, screenHeight);
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.drawLine(startX + width - 1, 0, startX + width - 1, screenHeight);
+        g2.setColor(originalColor);
+    }
+
     public boolean isChefCollision(Chef mover, int nextX, int nextY) {
         Chef other = (mover == chef1) ? chef2 : chef1;
-        if (other == null) return false;
-        Rectangle moverArea = new Rectangle(nextX + mover.solidAreaDefaultX, nextY + mover.solidAreaDefaultY, mover.solidArea.width, mover.solidArea.height);
-        Rectangle otherArea = new Rectangle(other.x + other.solidAreaDefaultX, other.y + other.solidAreaDefaultY, other.solidArea.width, other.solidArea.height);
+        if (other == null)
+            return false;
+        Rectangle moverArea = new Rectangle(nextX + mover.solidAreaDefaultX, nextY + mover.solidAreaDefaultY,
+                mover.solidArea.width, mover.solidArea.height);
+        Rectangle otherArea = new Rectangle(other.x + other.solidAreaDefaultX, other.y + other.solidAreaDefaultY,
+                other.solidArea.width, other.solidArea.height);
         return moverArea.intersects(otherArea);
     }
 
     private void updateHeldItemPopup(Chef chef, HeldItemNotification popup) {
-        if (chef == null || popup == null) return;
+        if (chef == null || popup == null)
+            return;
         Item current = chef.getHeldItem();
         if (current != null) {
-            if (popup.lastItem != current) popup.lastItem = current;
+            if (popup.lastItem != current)
+                popup.lastItem = current;
             popup.holding = true;
             popup.timer = HELD_ITEM_POPUP_DURATION;
         } else {
-            if (popup.holding) popup.holding = false;
+            if (popup.holding)
+                popup.holding = false;
             if (popup.lastItem != null) {
-                if (popup.timer > 0) popup.timer--;
-                else popup.lastItem = null;
+                if (popup.timer > 0)
+                    popup.timer--;
+                else
+                    popup.lastItem = null;
             }
         }
     }
 
     private void drawHeldItemPopup(Graphics2D g2, HeldItemNotification popup, int x, int y, String label) {
-        if (popup == null || popup.lastItem == null) return;
+        if (popup == null || popup.lastItem == null)
+            return;
         float alpha = popup.holding ? 1f : Math.min(1f, popup.timer / (float) HELD_ITEM_POPUP_DURATION);
-        if (alpha <= 0f) return;
+        if (alpha <= 0f)
+            return;
         BufferedImage icon = AssetManager.getInstance().getItemIcon(popup.lastItem);
         String itemName = getDisplayName(popup.lastItem);
         int width = 180;
@@ -380,7 +428,8 @@ public class GamePanel extends JPanel implements Runnable {
         g2.drawRoundRect(x, y, width, height, 12, 12);
         g2.setFont(new Font("Arial", Font.BOLD, 12));
         g2.drawString(label, x + 12, y + 18);
-        if (icon != null) g2.drawImage(icon, x + 12, y + 24, 40, 40, null);
+        if (icon != null)
+            g2.drawImage(icon, x + 12, y + 24, 40, 40, null);
         else {
             g2.setColor(Color.DARK_GRAY);
             g2.fillOval(x + 12, y + 26, 36, 36);
@@ -392,19 +441,24 @@ public class GamePanel extends JPanel implements Runnable {
         g2.setComposite(original);
     }
 
-    public void pushTilePopup(int tileX, int tileY, Item item, String stationSymbol, String message, String detail, Color accent) {
+    public void pushTilePopup(int tileX, int tileY, Item item, String stationSymbol, String message, String detail,
+            Color accent) {
         pushTilePopup(tileX, tileY, item, stationSymbol, message, detail, accent, TilePopup.DEFAULT_DURATION);
     }
 
     public void pushStationFeedback(Station station, Item item, String message, Color accent) {
-        if (station == null) return;
+        if (station == null)
+            return;
         String detail = (item != null) ? getDisplayName(item) : station.getName();
         pushTilePopup(station.getPosX(), station.getPosY(), item, station.getSymbol(), message, detail, accent);
     }
 
-    public void pushTilePopup(int tileX, int tileY, Item item, String stationSymbol, String message, String detail, Color accent, int duration) {
-        if (accent == null) accent = Color.ORANGE;
-        if (duration <= 0) duration = TilePopup.DEFAULT_DURATION;
+    public void pushTilePopup(int tileX, int tileY, Item item, String stationSymbol, String message, String detail,
+            Color accent, int duration) {
+        if (accent == null)
+            accent = Color.ORANGE;
+        if (duration <= 0)
+            duration = TilePopup.DEFAULT_DURATION;
         for (TilePopup popup : tilePopups) {
             if (popup.matches(tileX, tileY, message)) {
                 popup.refresh(item, stationSymbol, detail, accent, duration);
@@ -419,7 +473,8 @@ public class GamePanel extends JPanel implements Runnable {
         while (iterator.hasNext()) {
             TilePopup popup = iterator.next();
             popup.tick();
-            if (popup.isExpired()) iterator.remove();
+            if (popup.isExpired())
+                iterator.remove();
         }
     }
 
@@ -434,7 +489,8 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private String getDisplayName(Item item) {
-        if (item == null) return "";
+        if (item == null)
+            return "";
         if (item instanceof com.tugasbesar.models.item.Ingredient) {
             com.tugasbesar.models.item.Ingredient ing = (com.tugasbesar.models.item.Ingredient) item;
             return ing.getName() + " (" + ing.getState() + ")";
@@ -468,7 +524,8 @@ public class GamePanel extends JPanel implements Runnable {
         private int timer;
         private int duration;
 
-        TilePopup(int tileX, int tileY, Item item, String stationSymbol, String message, String detail, Color accent, int duration) {
+        TilePopup(int tileX, int tileY, Item item, String stationSymbol, String message, String detail, Color accent,
+                int duration) {
             this.tileX = tileX;
             this.tileY = tileY;
             this.message = message;
@@ -486,23 +543,29 @@ public class GamePanel extends JPanel implements Runnable {
 
         void refresh(Item item, String stationSymbol, String detail, Color accent, int duration) {
             this.item = item;
-            if (stationSymbol != null) this.stationSymbol = stationSymbol;
+            if (stationSymbol != null)
+                this.stationSymbol = stationSymbol;
             this.detail = computeDetail(detail, item, this.stationSymbol);
             this.accent = accent;
-            if (duration <= 0) duration = DEFAULT_DURATION;
+            if (duration <= 0)
+                duration = DEFAULT_DURATION;
             this.duration = duration;
             this.timer = duration;
         }
 
         private String computeDetail(String detail, Item item, String stationSymbol) {
-            if (detail != null && !detail.isBlank()) return detail;
-            if (item != null) return getDisplayName(item);
-            if (stationSymbol != null) return "";
+            if (detail != null && !detail.isBlank())
+                return detail;
+            if (item != null)
+                return getDisplayName(item);
+            if (stationSymbol != null)
+                return "";
             return "";
         }
 
         void tick() {
-            if (timer > 0) timer--;
+            if (timer > 0)
+                timer--;
         }
 
         boolean isExpired() {
@@ -510,38 +573,78 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         private BufferedImage resolveIcon() {
-            if (item != null) return AssetManager.getInstance().getItemIcon(item);
-            if (stationSymbol != null) return AssetManager.getInstance().getStationIcon(stationSymbol);
+            if (item != null)
+                return AssetManager.getInstance().getItemIcon(item);
+            if (stationSymbol != null)
+                return AssetManager.getInstance().getStationIcon(stationSymbol);
             return null;
         }
 
         void draw(Graphics2D g2, int tileSize, int stackIndex) {
             float alpha = Math.min(1f, timer / (float) duration);
-            int width = 160;
-            int height = 52;
-            int screenX = tileX * tileSize + (tileSize - width) / 2;
-            int screenY = tileY * tileSize - height - 8 - (stackIndex * (height + 6));
-            if (screenY < 0) screenY = tileY * tileSize + tileSize + 8 + (stackIndex * (height + 6));
+            Font messageFont = new Font("Arial", Font.BOLD, 14);
+            Font detailFont = new Font("Arial", Font.PLAIN, 11);
+            FontMetrics messageMetrics = g2.getFontMetrics(messageFont);
+            int messageWidth = messageMetrics.stringWidth(message);
+            int detailWidth = 0;
+            boolean hasDetail = detail != null && !detail.isBlank();
+            if (hasDetail) {
+                FontMetrics detailMetrics = g2.getFontMetrics(detailFont);
+                detailWidth = detailMetrics.stringWidth(detail);
+            }
+
+            int iconSize = 32;
+            int paddingX = 20;
+            int textOffsetX = 10;
+            int baseWidth = iconSize + paddingX + textOffsetX + Math.max(messageWidth, detailWidth);
+            int sidebarStartX = tileSize * 14;
+            int maxWidth = Math.max(160, sidebarStartX - 16);
+            int width = Math.min(Math.max(180, baseWidth), maxWidth);
+            int height = hasDetail ? 56 : 48;
+            int stackSpacing = height + 6;
+
+            int desiredX = tileX * tileSize + (tileSize - width) / 2;
+            int minX = 8;
+            int maxX = Math.max(minX, sidebarStartX - width - 8);
+            int screenX = Math.min(Math.max(desiredX, minX), maxX);
+
+            int aboveY = tileY * tileSize - height - 8 - (stackIndex * stackSpacing);
+            int belowY = tileY * tileSize + tileSize + 8 + (stackIndex * stackSpacing);
+            int minY = 8;
+            int maxY = screenHeight - height - 8;
+            int screenY = (aboveY >= minY) ? aboveY : belowY;
+            if (screenY > maxY)
+                screenY = maxY;
+
             Composite original = g2.getComposite();
             g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
             g2.setColor(new Color(0, 0, 0, 210));
             g2.fillRoundRect(screenX, screenY, width, height, 12, 12);
             g2.setColor(accent);
             g2.drawRoundRect(screenX, screenY, width, height, 12, 12);
+
             BufferedImage icon = resolveIcon();
-            if (icon != null) g2.drawImage(icon, screenX + 10, screenY + 10, 32, 32, null);
+            int iconX = screenX + 12;
+            int iconY = screenY + (height - iconSize) / 2;
+            if (icon != null)
+                g2.drawImage(icon, iconX, iconY, iconSize, iconSize, null);
             else {
                 g2.setColor(Color.DARK_GRAY);
-                g2.fillOval(screenX + 12, screenY + 12, 28, 28);
+                g2.fillOval(iconX, iconY, iconSize, iconSize);
                 g2.setColor(Color.WHITE);
-                g2.drawString("?", screenX + 24, screenY + 31);
+                g2.drawString("?", iconX + (iconSize / 2) - 4, iconY + (iconSize / 2) + 4);
             }
+
+            int textX = iconX + iconSize + textOffsetX;
+            int messageBaseline = screenY + 22;
+            int detailBaseline = messageBaseline + 16;
+
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, 14));
-            g2.drawString(message, screenX + 52, screenY + 24);
-            if (detail != null && !detail.isBlank()) {
-                g2.setFont(new Font("Arial", Font.PLAIN, 11));
-                g2.drawString(detail, screenX + 52, screenY + 40);
+            g2.setFont(messageFont);
+            g2.drawString(message, textX, messageBaseline);
+            if (hasDetail) {
+                g2.setFont(detailFont);
+                g2.drawString(detail, textX, detailBaseline);
             }
             g2.setComposite(original);
         }
