@@ -118,8 +118,8 @@ public class AssemblyStation extends Station {
         // --- 3. Assembly (Mencocokkan resep pada Plate di meja) ---
         if (tableItem instanceof Plate plateOnTable) {
             // Pastikan piring tidak kotor, punya isi, dan isinya belum jadi Dish
-            if (!plateOnTable.isDirty() && plateOnTable.getContents().size() > 0
-                    && !plateOnTable.getContents().get(0).equals("Dish")) {
+            if (!plateOnTable.isDirty() && !plateOnTable.getContents().isEmpty()
+                    && !containsFinalDish(plateOnTable)) {
                 if (performAssembly(plateOnTable)) {
                     return;
                 }
@@ -129,8 +129,8 @@ public class AssemblyStation extends Station {
         // --- 4. Assembly (Mencocokkan resep pada Plate di tangan) ---
         if (hand instanceof Plate plateInHand) {
             // Pastikan piring tidak kotor, punya isi, dan isinya belum jadi Dish
-            if (!plateInHand.isDirty() && plateInHand.getContents().size() > 0
-                    && !plateInHand.getContents().get(0).equals("Dish")) {
+            if (!plateInHand.isDirty() && !plateInHand.getContents().isEmpty()
+                    && !containsFinalDish(plateInHand)) {
                 if (performAssembly(plateInHand)) {
                     return;
                 }
@@ -164,11 +164,13 @@ public class AssemblyStation extends Station {
 
     private boolean performAssembly(Plate plate) {
         List<Processable> contents = plate.getContents();
-        if (contents.isEmpty())
+        if (contents.isEmpty()) {
             return false;
+        }
 
         List<String> contentsInStringFormat = contents.stream()
-                .map(Processable::toString)
+                .filter(processable -> !(processable instanceof Dish))
+                .map(Processable::getName)
                 .collect(Collectors.toList());
 
         Recipe recipeMatch = orderManager.findMatchingRecipe(contentsInStringFormat);
@@ -184,5 +186,9 @@ public class AssemblyStation extends Station {
             notifyInteraction("Recipe Mismatch!", Color.RED);
             return false;
         }
+    }
+
+    private boolean containsFinalDish(Plate plate) {
+        return plate.getContents().stream().anyMatch(content -> content instanceof Dish);
     }
 }
