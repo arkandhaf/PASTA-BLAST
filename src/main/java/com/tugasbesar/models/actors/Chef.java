@@ -57,8 +57,10 @@ public class Chef extends Entity {
         this.isBusy = false;
         this.moving = false;
 
-        if (playerID == 1) chefColor = Color.RED;
-        else chefColor = Color.BLUE;
+        if (playerID == 1)
+            chefColor = Color.RED;
+        else
+            chefColor = Color.BLUE;
     }
 
     public void setDefaultValues(int startCol, int startRow) {
@@ -68,36 +70,55 @@ public class Chef extends Entity {
     }
 
     public void update(KeyHandler inputKeyH) {
-        if (inputKeyH == null) return;
-        if (isBusy) return;
+        if (inputKeyH == null)
+            return;
+        if (isBusy)
+            return;
 
         boolean up = inputKeyH.upPressed;
         boolean down = inputKeyH.downPressed;
         boolean left = inputKeyH.leftPressed;
         boolean right = inputKeyH.rightPressed;
         boolean dash = inputKeyH.dashPressed;
-        
+
         // --- INPUT BARU: SPACE & E ---
         boolean grab = inputKeyH.interactPressed; // SPACE
-        boolean use = inputKeyH.usePressed;       // E
+        boolean use = inputKeyH.usePressed; // E
 
         int currentSpeed = dash ? 8 : speed;
         boolean wantsToMove = false;
 
-        if (up) { direction = "up"; wantsToMove = true; }
-        else if (down) { direction = "down"; wantsToMove = true; }
-        else if (left) { direction = "left"; wantsToMove = true; }
-        else if (right) { direction = "right"; wantsToMove = true; }
+        if (up) {
+            direction = "up";
+            wantsToMove = true;
+        } else if (down) {
+            direction = "down";
+            wantsToMove = true;
+        } else if (left) {
+            direction = "left";
+            wantsToMove = true;
+        } else if (right) {
+            direction = "right";
+            wantsToMove = true;
+        }
 
         int nextX = x;
         int nextY = y;
 
         if (wantsToMove) {
             switch (direction) {
-                case "up": nextY -= currentSpeed; break;
-                case "down": nextY += currentSpeed; break;
-                case "left": nextX -= currentSpeed; break;
-                case "right": nextX += currentSpeed; break;
+                case "up":
+                    nextY -= currentSpeed;
+                    break;
+                case "down":
+                    nextY += currentSpeed;
+                    break;
+                case "left":
+                    nextX -= currentSpeed;
+                    break;
+                case "right":
+                    nextX += currentSpeed;
+                    break;
             }
         }
 
@@ -121,16 +142,18 @@ public class Chef extends Entity {
 
         moving = moved;
 
-        if (!wantsToMove || !moving) updateIdleAnimation();
-        else advanceWalkAnimation();
+        if (!wantsToMove || !moving)
+            updateIdleAnimation();
+        else
+            advanceWalkAnimation();
 
         // --- INTERAKSI (DEBOUNCED) ---
-        
+
         // GRAB (Space) - Hanya sekali tekan
         if (grab && !prevGrabPressed) {
             interact("grab");
         }
-        
+
         // USE (E) - Bisa ditahan (untuk Cutting) atau sekali tekan (untuk Stove)
         if (use) {
             // Kita panggil terus menerus (CuttingStation butuh ini)
@@ -144,7 +167,8 @@ public class Chef extends Entity {
     }
 
     @Override
-    public void update() {}
+    public void update() {
+    }
 
     public void interact(String type) {
         int centerX = this.x + gp.tileSize / 2;
@@ -155,10 +179,18 @@ public class Chef extends Entity {
         int sensorY = centerY;
 
         switch (direction) {
-            case "up": sensorY -= reach; break;
-            case "down": sensorY += reach; break;
-            case "left": sensorX -= reach; break;
-            case "right": sensorX += reach; break;
+            case "up":
+                sensorY -= reach;
+                break;
+            case "down":
+                sensorY += reach;
+                break;
+            case "left":
+                sensorX -= reach;
+                break;
+            case "right":
+                sensorX += reach;
+                break;
         }
 
         int targetCol = sensorX / gp.tileSize;
@@ -192,7 +224,8 @@ public class Chef extends Entity {
             if (hasItem()) {
                 gp.pushTilePopup(targetCol, targetRow, heldItem, null, "Put down?", null, new Color(255, 193, 7));
             } else {
-                gp.pushTilePopup(targetCol, targetRow, null, null, "Nothing here", "Try a station", new Color(255, 193, 7));
+                gp.pushTilePopup(targetCol, targetRow, null, null, "Nothing here", "Try a station",
+                        new Color(255, 193, 7));
             }
         }
     }
@@ -212,10 +245,14 @@ public class Chef extends Entity {
             g2.fillRect(drawX, drawY, drawSize, drawSize);
             g2.setColor(Color.WHITE);
             int eyeSize = 6;
-            if (direction.equals("up")) g2.fillRect(drawX + drawSize / 2 - 8, drawY + 2, 16, eyeSize);
-            if (direction.equals("down")) g2.fillRect(drawX + drawSize / 2 - 8, drawY + drawSize - 8, 16, eyeSize);
-            if (direction.equals("left")) g2.fillRect(drawX + 2, drawY + drawSize / 2 - 8, eyeSize, 16);
-            if (direction.equals("right")) g2.fillRect(drawX + drawSize - 8, drawY + drawSize / 2 - 8, eyeSize, 16);
+            if (direction.equals("up"))
+                g2.fillRect(drawX + drawSize / 2 - 8, drawY + 2, 16, eyeSize);
+            if (direction.equals("down"))
+                g2.fillRect(drawX + drawSize / 2 - 8, drawY + drawSize - 8, 16, eyeSize);
+            if (direction.equals("left"))
+                g2.fillRect(drawX + 2, drawY + drawSize / 2 - 8, eyeSize, 16);
+            if (direction.equals("right"))
+                g2.fillRect(drawX + drawSize - 8, drawY + drawSize / 2 - 8, eyeSize, 16);
         }
 
         boolean isActivePlayer = gp != null && gp.activePlayerID == playerID;
@@ -254,12 +291,16 @@ public class Chef extends Entity {
     }
 
     private BufferedImage[] toFrameArray(Map<String, BufferedImage> frames) {
-        if (frames == null || frames.isEmpty()) return null;
+        if (frames == null || frames.isEmpty())
+            return null;
         BufferedImage first = frames.get("left");
         BufferedImage second = frames.get("right");
-        if (first == null && second == null) return null;
-        if (first == null) first = second;
-        if (second == null) second = first;
+        if (first == null && second == null)
+            return null;
+        if (first == null)
+            first = second;
+        if (second == null)
+            second = first;
         return new BufferedImage[] { first, second };
     }
 
@@ -270,12 +311,14 @@ public class Chef extends Entity {
             if (frames != null) {
                 int index = (spriteNum == 1) ? 0 : 1;
                 BufferedImage frame = frames[index];
-                if (frame != null) return frame;
+                if (frame != null)
+                    return frame;
             }
         }
         if (standingSprites != null) {
             BufferedImage sprite = standingSprites.get(facing);
-            if (sprite == null) sprite = standingSprites.get("down");
+            if (sprite == null)
+                sprite = standingSprites.get("down");
             return sprite;
         }
         return null;
@@ -295,12 +338,35 @@ public class Chef extends Entity {
         spriteNum = 1;
     }
 
-    public String getName() { return name; }
-    public Item getHeldItem() { return heldItem; }
-    public void setHeldItem(Item item) { this.heldItem = item; }
-    public boolean hasItem() { return heldItem != null; }
-    public String getDirection() { return direction; }
-    public boolean isBusy() { return isBusy; }
-    public void setBusy(boolean busy) { this.isBusy = busy; }
-    public int getPlayerID() { return playerID; }
+    public String getName() {
+        return name;
+    }
+
+    public Item getHeldItem() {
+        return heldItem;
+    }
+
+    public void setHeldItem(Item item) {
+        this.heldItem = item;
+    }
+
+    public boolean hasItem() {
+        return heldItem != null;
+    }
+
+    public String getDirection() {
+        return direction;
+    }
+
+    public boolean isBusy() {
+        return isBusy;
+    }
+
+    public void setBusy(boolean busy) {
+        this.isBusy = busy;
+    }
+
+    public int getPlayerID() {
+        return playerID;
+    }
 }
