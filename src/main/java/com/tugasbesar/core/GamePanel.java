@@ -418,7 +418,15 @@ public class GamePanel extends JPanel implements Runnable {
             return;
         BufferedImage icon = AssetManager.getInstance().getItemIcon(popup.lastItem);
         String itemName = getDisplayName(popup.lastItem);
-        int width = 180;
+        Font labelFont = new Font("Lucida Console", Font.BOLD, 12);
+        Font itemFont = new Font("Lucida Console", Font.BOLD, 14);
+        FontMetrics labelMetrics = g2.getFontMetrics(labelFont);
+        FontMetrics itemMetrics = g2.getFontMetrics(itemFont);
+        int textPaddingX = 58;
+        int labelWidth = labelMetrics.stringWidth(label);
+        int itemWidth = itemMetrics.stringWidth(itemName);
+        int baseWidth = textPaddingX + Math.max(labelWidth, itemWidth) + 20;
+        int width = Math.max(180, baseWidth);
         int height = 70;
         Composite original = g2.getComposite();
         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
@@ -426,7 +434,7 @@ public class GamePanel extends JPanel implements Runnable {
         g2.fillRoundRect(x, y, width, height, 12, 12);
         g2.setColor(Color.WHITE);
         g2.drawRoundRect(x, y, width, height, 12, 12);
-        g2.setFont(new Font("Lucida Console", Font.BOLD, 12));
+        g2.setFont(labelFont);
         g2.drawString(label, x + 12, y + 18);
         if (icon != null)
             g2.drawImage(icon, x + 12, y + 24, 40, 40, null);
@@ -436,7 +444,7 @@ public class GamePanel extends JPanel implements Runnable {
             g2.setColor(Color.WHITE);
             g2.drawString("?", x + 26, y + 50);
         }
-        g2.setFont(new Font("Lucida Console", Font.BOLD, 14));
+        g2.setFont(itemFont);
         g2.drawString(itemName, x + 58, y + 48);
         g2.setComposite(original);
     }
