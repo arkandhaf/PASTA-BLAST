@@ -92,17 +92,17 @@ public class CookingStation extends Station {
     @Override
     public void update() {
         if (itemOnStation instanceof BaseCookingDevice) {
-            ((BaseCookingDevice) itemOnStation).processCookingTick(); 
+            ((BaseCookingDevice) itemOnStation).processCookingTick();
         }
     }
 
     @Override
     public void draw(Graphics2D g2) {
         super.draw(g2);
-        
+
         if (itemOnStation instanceof BaseCookingDevice) {
             BaseCookingDevice device = (BaseCookingDevice) itemOnStation;
-            int progress = device.getCookingPercentage(); 
+            int progress = device.getCookingPercentage();
             boolean isBurned = device.isBurned();
             boolean isCooked = device.isCooked();
             boolean isCooking = device.isCooking();
@@ -125,12 +125,12 @@ public class CookingStation extends Station {
                     statusText = "PRESS E";
                     statusColor = Color.YELLOW;
                 }
-                
+
                 // Gambar Teks di Tengah Atas
                 g2.setColor(statusColor);
-                g2.setFont(new Font("Arial", Font.BOLD, 11));
+                g2.setFont(new Font("Lucida Console", Font.BOLD, 11));
                 int textLen = (int) g2.getFontMetrics().getStringBounds(statusText, g2).getWidth();
-                g2.drawString(statusText, (posX * 48) + (24 - textLen/2), posY * 48 - 8);
+                g2.drawString(statusText, (posX * 48) + (24 - textLen / 2), posY * 48 - 8);
 
                 // Gambar Progress Bar
                 g2.setColor(Color.BLACK);

@@ -262,7 +262,7 @@ public class GamePanel extends JPanel implements Runnable {
         }
 
         if (messageOn) {
-            g2.setFont(new Font("Arial", Font.BOLD, 30));
+            g2.setFont(new Font("Lucida Console", Font.BOLD, 30));
             g2.setColor(Color.YELLOW);
             drawCenteredText(g2, message, 30, 0);
             messageCounter++;
@@ -276,7 +276,7 @@ public class GamePanel extends JPanel implements Runnable {
 
         Chef activeChef = (activePlayerID == 1) ? chef1 : chef2;
         g2.setColor(Color.YELLOW);
-        g2.setFont(new Font("Arial", Font.BOLD, 10));
+        g2.setFont(new Font("Lucida Console", Font.BOLD, 10));
         g2.drawString("▼", activeChef.x + 20, activeChef.y - 5);
 
         drawHeldItemPopup(g2, heldItemPopups[0], 20, screenHeight - 90, "P1");
@@ -311,7 +311,7 @@ public class GamePanel extends JPanel implements Runnable {
         String scoreText = (orderManager != null) ? "SCORE: " + orderManager.getScore() : "SCORE: 0";
         Font originalFont = g2.getFont();
         Color originalColor = g2.getColor();
-        Font font = new Font("Arial", Font.BOLD, 20);
+        Font font = new Font("Lucida Console", Font.BOLD, 20);
         g2.setFont(font);
         FontMetrics fm = g2.getFontMetrics();
         int lineHeight = fm.getAscent() + fm.getDescent();
@@ -334,7 +334,7 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void drawCenteredText(Graphics2D g2, String text, int size, int yOffset) {
-        g2.setFont(new Font("Arial", Font.BOLD, size));
+        g2.setFont(new Font("Lucida Console", Font.BOLD, size));
         int length = (int) g2.getFontMetrics().getStringBounds(text, g2).getWidth();
         int x = screenWidth / 2 - length / 2;
         int y = screenHeight / 2 + yOffset;
@@ -426,7 +426,7 @@ public class GamePanel extends JPanel implements Runnable {
         g2.fillRoundRect(x, y, width, height, 12, 12);
         g2.setColor(Color.WHITE);
         g2.drawRoundRect(x, y, width, height, 12, 12);
-        g2.setFont(new Font("Arial", Font.BOLD, 12));
+        g2.setFont(new Font("Lucida Console", Font.BOLD, 12));
         g2.drawString(label, x + 12, y + 18);
         if (icon != null)
             g2.drawImage(icon, x + 12, y + 24, 40, 40, null);
@@ -436,7 +436,7 @@ public class GamePanel extends JPanel implements Runnable {
             g2.setColor(Color.WHITE);
             g2.drawString("?", x + 26, y + 50);
         }
-        g2.setFont(new Font("Arial", Font.BOLD, 14));
+        g2.setFont(new Font("Lucida Console", Font.BOLD, 14));
         g2.drawString(itemName, x + 58, y + 48);
         g2.setComposite(original);
     }
@@ -582,8 +582,8 @@ public class GamePanel extends JPanel implements Runnable {
 
         void draw(Graphics2D g2, int tileSize, int stackIndex) {
             float alpha = Math.min(1f, timer / (float) duration);
-            Font messageFont = new Font("Arial", Font.BOLD, 14);
-            Font detailFont = new Font("Arial", Font.PLAIN, 11);
+            Font messageFont = new Font("Lucida Console", Font.BOLD, 14);
+            Font detailFont = new Font("Lucida Console", Font.PLAIN, 11);
             FontMetrics messageMetrics = g2.getFontMetrics(messageFont);
             int messageWidth = messageMetrics.stringWidth(message);
             int detailWidth = 0;

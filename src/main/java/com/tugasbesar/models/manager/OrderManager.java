@@ -179,7 +179,7 @@ public class OrderManager {
     public void resetScore() {
         this.score = 0;
         this.activeOrders.clear(); // Hapus semua order lama
-        this.spawnTimer = 0;       // Reset timer spawn
+        this.spawnTimer = 0; // Reset timer spawn
         this.streak = 0;
         this.comboMultiplier = 1;
         this.notifications.clear();
@@ -222,7 +222,7 @@ public class OrderManager {
         int comboOffset = 0;
         if (streak >= 2) {
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, 12));
+            g2.setFont(new Font("Lucida Console", Font.BOLD, 12));
             g2.drawString("Combo x" + comboMultiplier + " (Streak " + streak + ")", x, y);
             comboOffset = 18;
         }
@@ -246,11 +246,11 @@ public class OrderManager {
 
             // 3. Nama Resep
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, 14));
+            g2.setFont(new Font("Lucida Console", Font.BOLD, 14));
             g2.drawString(order.getRecipe().getRecipeName(), x + 10, yPos + 18);
 
             // 4. List Bahan (Kuning Kecil)
-            g2.setFont(new Font("Arial", Font.ITALIC, 11));
+            g2.setFont(new Font("Lucida Console", Font.ITALIC, 11));
             g2.setColor(Color.YELLOW);
 
             String ingredientsText = "";
@@ -297,11 +297,25 @@ public class OrderManager {
             this.dishItem = new Dish(recipe.getRecipeName());
         }
 
-        public int getPointsAwarded() { return pointsAwarded; }
-        public int getStreak() { return streak; }
-        public int getMultiplier() { return multiplier; }
-        public Dish getDishItem() { return dishItem; }
-        public String getRecipeName() { return recipe.getRecipeName(); }
+        public int getPointsAwarded() {
+            return pointsAwarded;
+        }
+
+        public int getStreak() {
+            return streak;
+        }
+
+        public int getMultiplier() {
+            return multiplier;
+        }
+
+        public Dish getDishItem() {
+            return dishItem;
+        }
+
+        public String getRecipeName() {
+            return recipe.getRecipeName();
+        }
 
         public String getToastMessage() {
             String message = "+" + pointsAwarded + " pts";
@@ -349,7 +363,8 @@ public class OrderManager {
         }
 
         void tick() {
-            if (timer > 0) timer--;
+            if (timer > 0)
+                timer--;
         }
 
         boolean isExpired() {
@@ -391,10 +406,10 @@ public class OrderManager {
             }
 
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, 14));
+            g2.setFont(new Font("Lucida Console", Font.BOLD, 14));
             g2.drawString(type.label, x + 70, y + 20);
 
-            g2.setFont(new Font("Arial", Font.PLAIN, 12));
+            g2.setFont(new Font("Lucida Console", Font.PLAIN, 12));
             g2.drawString(recipe.getRecipeName(), x + 70, y + 38);
 
             g2.setComposite(originalComposite);

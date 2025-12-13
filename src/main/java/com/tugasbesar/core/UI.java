@@ -3,19 +3,22 @@ package com.tugasbesar.core;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 
 public class UI {
 
     GamePanel gp;
     Font arial_40, arial_52B, arial_80B, arial_20;
+    private final BufferedImage stagePreviewImage;
     public int commandNum = 0;
 
     public UI(GamePanel gp) {
         this.gp = gp;
-        arial_40 = new Font("Arial", Font.PLAIN, 40);
-        arial_52B = new Font("Arial", Font.BOLD, 52);
-        arial_80B = new Font("Arial", Font.BOLD, 80);
-        arial_20 = new Font("Arial", Font.PLAIN, 20);
+        arial_40 = new Font("Lucida Console", Font.PLAIN, 40);
+        arial_52B = new Font("Lucida Console", Font.BOLD, 52);
+        arial_80B = new Font("Lucida Console", Font.BOLD, 80);
+        arial_20 = new Font("Lucida Console", Font.PLAIN, 20);
+        stagePreviewImage = AssetManager.getInstance().loadImage("maps/preview.png");
     }
 
     public void draw(Graphics2D g2) {
@@ -129,18 +132,40 @@ public class UI {
         g2.drawString(text, x, y);
 
         // Kotak Preview
-        int boxWidth = 300;
-        int boxHeight = 200;
+        int baseBoxWidth = 300;
+        int baseBoxHeight = 200;
+        int boxWidth = baseBoxWidth;
+        int boxHeight = baseBoxHeight;
+        int previewWidth = -1;
+        int previewHeight = -1;
+        boolean hasPreview = stagePreviewImage != null;
+
+        if (hasPreview) {
+            double scaleLimit = Math.min(baseBoxWidth / (double) stagePreviewImage.getWidth(),
+                    baseBoxHeight / (double) stagePreviewImage.getHeight());
+            scaleLimit = Math.min(scaleLimit, 1.0);
+            previewWidth = (int) Math.round(stagePreviewImage.getWidth() * scaleLimit);
+            previewHeight = (int) Math.round(stagePreviewImage.getHeight() * scaleLimit);
+            boxWidth = previewWidth;
+            boxHeight = previewHeight;
+        }
+
         int boxX = gp.screenWidth / 2 - boxWidth / 2;
         int boxY = y + 36;
 
-        g2.setColor(Color.GRAY);
-        g2.fillRect(boxX, boxY, boxWidth, boxHeight);
+        if (stagePreviewImage != null) {
+            int previewX = boxX + (boxWidth - previewWidth) / 2;
+            int previewY = boxY + (boxHeight - previewHeight) / 2;
+            g2.drawImage(stagePreviewImage, previewX, previewY, previewWidth, previewHeight, null);
+        } else {
+            g2.setColor(Color.GRAY);
+            g2.fillRect(boxX, boxY, boxWidth, boxHeight);
+            g2.setFont(arial_40);
+            g2.setColor(Color.WHITE);
+            g2.drawString("Map Preview", boxX + 40, boxY + 110);
+        }
         g2.setColor(Color.WHITE);
         g2.drawRect(boxX, boxY, boxWidth, boxHeight);
-
-        g2.setFont(arial_40);
-        g2.drawString("Map Preview", boxX + 40, boxY + 110);
 
         // Navigasi Stage
         y = boxY + boxHeight + 60;

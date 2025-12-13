@@ -36,7 +36,7 @@ public abstract class Station {
     public abstract void interactGrab(Chef chef);
 
     public abstract void interactUse(Chef chef);
-    
+
     public void update() {
     }
 
@@ -110,7 +110,7 @@ public abstract class Station {
         g2.drawRect(screenX, screenY, tileSize, tileSize);
 
         g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Arial", Font.BOLD, 20));
+        g2.setFont(new Font("Lucida Console", Font.BOLD, 20));
         g2.drawString(symbol, screenX + 15, screenY + 30);
 
         if (itemOnStation != null) {
