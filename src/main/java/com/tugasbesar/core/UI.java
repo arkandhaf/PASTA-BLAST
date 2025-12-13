@@ -3,6 +3,8 @@ package com.tugasbesar.core;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.Composite;
+import java.awt.AlphaComposite;
 import java.awt.image.BufferedImage;
 
 public class UI {
@@ -10,6 +12,8 @@ public class UI {
     GamePanel gp;
     Font arial_40, arial_52B, arial_80B, arial_20;
     private final BufferedImage stagePreviewImage;
+    private final BufferedImage titleBackground;
+    private final BufferedImage blankBackground;
     public int commandNum = 0;
 
     public UI(GamePanel gp) {
@@ -19,6 +23,8 @@ public class UI {
         arial_80B = new Font("Lucida Console", Font.BOLD, 80);
         arial_20 = new Font("Lucida Console", Font.PLAIN, 20);
         stagePreviewImage = AssetManager.getInstance().loadImage("maps/preview.png");
+        titleBackground = AssetManager.getInstance().loadUIImage("bg-title");
+        blankBackground = AssetManager.getInstance().loadUIImage("bg-blank");
     }
 
     public void draw(Graphics2D g2) {
@@ -35,26 +41,11 @@ public class UI {
 
     // 1. MAIN MENU
     private void drawTitleScreen(Graphics2D g2) {
-        g2.setColor(new Color(20, 20, 20));
-        g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+        drawBackground(g2, titleBackground, Color.BLACK, 0.0f);
 
-        // Judul
-        g2.setFont(arial_80B);
-        String text = "PASTA-BLAST";
-        int x = getXforCenteredText(text, g2);
         int y = gp.tileSize * 3;
-
-        g2.setColor(Color.GRAY);
-        g2.drawString(text, x + 5, y + 5);
-        g2.setColor(Color.ORANGE);
-        g2.drawString(text, x, y);
-
         g2.setFont(arial_40);
-        text = "The Ultimate Smash Sauce";
-        x = getXforCenteredText(text, g2);
         y += gp.tileSize;
-        g2.setColor(Color.WHITE);
-        g2.drawString(text, x, y);
 
         // --- MENU OPTIONS ---
         String[] options = { "START GAME", "HOW TO PLAY", "EXIT" };
@@ -72,6 +63,32 @@ public class UI {
             optionX[i] = getXforCenteredText(options[i], g2);
             optionY[i] = cursorY;
         }
+
+        java.awt.FontMetrics optionMetrics = g2.getFontMetrics();
+        int paddingX = 60;
+        int paddingY = 25;
+        int minLeft = Integer.MAX_VALUE;
+        int maxRight = Integer.MIN_VALUE;
+        for (int i = 0; i < optionCount; i++) {
+            int textWidth = optionMetrics.stringWidth(options[i]);
+            int left = optionX[i] - paddingX;
+            int right = optionX[i] + textWidth + paddingX;
+            if (left < minLeft)
+                minLeft = left;
+            if (right > maxRight)
+                maxRight = right;
+        }
+        int top = optionY[0] - optionMetrics.getAscent() - paddingY;
+        int bottom = optionY[optionCount - 1] + optionMetrics.getDescent() + paddingY;
+        int boxX = minLeft;
+        int boxY = top;
+        int boxWidth = maxRight - minLeft;
+        int boxHeight = bottom - top;
+
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.fillRoundRect(boxX, boxY, boxWidth, boxHeight, 24, 24);
+        g2.setColor(new Color(255, 255, 255, 30));
+        g2.drawRoundRect(boxX, boxY, boxWidth, boxHeight, 24, 24);
 
         int hoveredIndex = -1;
         if (gp.mouseH != null) {
@@ -121,8 +138,7 @@ public class UI {
 
     // 2. STAGE SELECT MENU
     private void drawStageSelect(Graphics2D g2) {
-        g2.setColor(new Color(0, 0, 50));
-        g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+        drawBackground(g2, blankBackground, Color.BLACK, 0.7f);
 
         g2.setColor(Color.WHITE);
         g2.setFont(arial_52B);
@@ -233,8 +249,7 @@ public class UI {
 
     // 4. HOW TO PLAY (UPDATED CONTROLS)
     private void drawHowToPlay(Graphics2D g2) {
-        g2.setColor(Color.BLACK);
-        g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+        drawBackground(g2, blankBackground, Color.BLACK, 0.7f);
 
         g2.setColor(Color.WHITE);
         g2.setFont(arial_40);
@@ -279,5 +294,28 @@ public class UI {
     private int getXforCenteredText(String text, Graphics2D g2) {
         int length = (int) g2.getFontMetrics().getStringBounds(text, g2).getWidth();
         return gp.screenWidth / 2 - length / 2;
+    }
+
+    private void drawBackground(Graphics2D g2, BufferedImage image, Color fallbackColor, float overlayAlpha) {
+        if (image != null) {
+            double scale = Math.max(gp.screenWidth / (double) image.getWidth(),
+                    gp.screenHeight / (double) image.getHeight());
+            int drawWidth = (int) Math.round(image.getWidth() * scale);
+            int drawHeight = (int) Math.round(image.getHeight() * scale);
+            int drawX = (gp.screenWidth - drawWidth) / 2;
+            int drawY = (gp.screenHeight - drawHeight) / 2;
+            g2.drawImage(image, drawX, drawY, drawWidth, drawHeight, null);
+        } else {
+            g2.setColor(fallbackColor);
+            g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+        }
+
+        if (overlayAlpha > 0f) {
+            Composite original = g2.getComposite();
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, overlayAlpha));
+            g2.setColor(Color.BLACK);
+            g2.fillRect(0, 0, gp.screenWidth, gp.screenHeight);
+            g2.setComposite(original);
+        }
     }
 }
