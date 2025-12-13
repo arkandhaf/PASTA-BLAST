@@ -218,10 +218,25 @@ public class Chef extends Entity {
             if (direction.equals("right")) g2.fillRect(drawX + drawSize - 8, drawY + drawSize / 2 - 8, eyeSize, 16);
         }
 
-        g2.setColor(Color.WHITE);
-        g2.setFont(g2.getFont().deriveFont(10F));
-        int textLen = (int) g2.getFontMetrics().getStringBounds(name, g2).getWidth();
-        g2.drawString(name, x + (gp.tileSize / 2) - (textLen / 2), y - 2);
+        boolean isActivePlayer = gp != null && gp.activePlayerID == playerID;
+        if (isActivePlayer) {
+            g2.setFont(g2.getFont().deriveFont(10F));
+            java.awt.FontMetrics metrics = g2.getFontMetrics();
+            int textWidth = metrics.stringWidth(name);
+            int textHeight = metrics.getHeight();
+            int pointerWidth = textWidth + 8;
+            int pointerHeight = textHeight;
+            int pointerX = x + (gp.tileSize / 2) - (pointerWidth / 2);
+            int pointerY = y + gp.tileSize + 4;
+
+            g2.setColor(new Color(0, 0, 0, 160));
+            g2.fillRoundRect(pointerX, pointerY, pointerWidth, pointerHeight, 6, 6);
+
+            g2.setColor(Color.WHITE);
+            int textX = x + (gp.tileSize / 2) - (textWidth / 2);
+            int textY = pointerY + metrics.getAscent();
+            g2.drawString(name, textX, textY);
+        }
 
         if (heldItem != null) {
             g2.setColor(new Color(255, 215, 0));
