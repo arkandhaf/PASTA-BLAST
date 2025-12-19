@@ -91,4 +91,8 @@ public class IngredientStorage extends Station {
             default: return null;
         }
     }
+
+    public String getIngredientName() {
+        return ingredientName;
+    }
 }

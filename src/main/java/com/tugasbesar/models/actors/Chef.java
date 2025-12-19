@@ -275,9 +275,19 @@ public class Chef extends Entity {
             g2.drawString(name, textX, textY);
         }
 
+        // Draw held item icon above chef's head
         if (heldItem != null) {
-            g2.setColor(new Color(255, 215, 0));
-            g2.fillOval(x + (gp.tileSize / 2) - 8, y - 12, 16, 16);
+            BufferedImage itemIcon = assetManager.getItemOnStationIcon(heldItem);
+            if (itemIcon != null) {
+                int iconSize = gp.tileSize / 2;
+                int iconX = x + (gp.tileSize / 2) - (iconSize / 2);
+                int iconY = y - iconSize - 4;
+                g2.drawImage(itemIcon, iconX, iconY, iconSize, iconSize, null);
+            } else {
+                // Fallback to yellow circle if no icon available
+                g2.setColor(new Color(255, 215, 0));
+                g2.fillOval(x + (gp.tileSize / 2) - 8, y - 12, 16, 16);
+            }
         }
     }
 

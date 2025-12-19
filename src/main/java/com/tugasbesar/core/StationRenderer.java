@@ -58,16 +58,26 @@ public class StationRenderer {
             return;
         }
 
-        String stationType = resolveStationType(station);
+        String stationType = resolveStationType(station, true);
         int x = station.getPosX() * gp.tileSize;
         int y = station.getPosY() * gp.tileSize;
 
         drawStationAt(g2, x, y, stationType);
 
+        // Draw item on station using actual item icon
         if (station.getItemOnStation() != null) {
-            int padding = gp.tileSize / 4;
-            g2.setColor(new java.awt.Color(255, 215, 0));
-            g2.fillOval(x + padding, y + padding, gp.tileSize - (padding * 2), gp.tileSize - (padding * 2));
+            BufferedImage itemIcon = assetManager.getItemOnStationIcon(station.getItemOnStation());
+            if (itemIcon != null) {
+                int iconSize = gp.tileSize / 2;
+                int iconX = x + (gp.tileSize - iconSize) / 2;
+                int iconY = y + (gp.tileSize - iconSize) / 2;
+                g2.drawImage(itemIcon, iconX, iconY, iconSize, iconSize, null);
+            } else {
+                // Fallback to yellow circle if no icon available
+                int padding = gp.tileSize / 4;
+                g2.setColor(new java.awt.Color(255, 215, 0));
+                g2.fillOval(x + padding, y + padding, gp.tileSize - (padding * 2), gp.tileSize - (padding * 2));
+            }
         }
     }
 
@@ -94,6 +104,27 @@ public class StationRenderer {
         }
 
         String typeKey = stationType.toLowerCase();
+
+        // Check for cooking state (e.g., "cooking_on")
+        if (typeKey.equals("cooking_on")) {
+            BufferedImage onImage = stationSprites.get("cooking_on");
+            if (onImage != null) {
+                return onImage;
+            }
+            // Fallback to regular cooking station
+            return stationSprites.get("cooking");
+        }
+
+        // Check for ingredient-specific storage (e.g., "ingredient_tomato")
+        if (typeKey.startsWith("ingredient_")) {
+            String ingredientName = typeKey.substring("ingredient_".length());
+            BufferedImage specificImage = assetManager.loadStation("ingredient", ingredientName, false);
+            if (specificImage != null) {
+                return specificImage;
+            }
+            // Fallback to generic ingredient storage
+            return stationSprites.get("ingredient");
+        }
 
         // Try exact match first
         if (stationSprites.containsKey(typeKey)) {
@@ -123,14 +154,29 @@ public class StationRenderer {
     }
 
     private String resolveStationType(Station station) {
+        return resolveStationType(station, false);
+    }
+
+    private String resolveStationType(Station station, boolean withDetails) {
         if (station instanceof AssemblyStation)
             return "assembly";
         if (station instanceof CuttingStation)
             return "cutting";
-        if (station instanceof CookingStation)
+        if (station instanceof CookingStation) {
+            if (withDetails && ((CookingStation) station).isOn()) {
+                return "cooking_on";
+            }
             return "cooking";
-        if (station instanceof IngredientStorage)
+        }
+        if (station instanceof IngredientStorage) {
+            if (withDetails) {
+                String ingredientName = ((IngredientStorage) station).getIngredientName();
+                if (ingredientName != null && !ingredientName.isEmpty()) {
+                    return "ingredient_" + ingredientName.toLowerCase();
+                }
+            }
             return "ingredient";
+        }
         if (station instanceof PlateStorage)
             return "plate";
         if (station instanceof ServingStation)

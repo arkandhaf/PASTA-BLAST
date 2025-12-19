@@ -458,7 +458,27 @@ public class GamePanel extends JPanel implements Runnable {
         if (station == null)
             return;
         String detail = (item != null) ? getDisplayName(item) : station.getName();
-        pushTilePopup(station.getPosX(), station.getPosY(), item, station.getSymbol(), message, detail, accent);
+        pushTilePopupWithStation(station.getPosX(), station.getPosY(), item, station, message, detail, accent);
+    }
+
+    private void pushTilePopupWithStation(int tileX, int tileY, Item item, Station station, String message,
+            String detail, Color accent) {
+        pushTilePopupWithStation(tileX, tileY, item, station, message, detail, accent, TilePopup.DEFAULT_DURATION);
+    }
+
+    private void pushTilePopupWithStation(int tileX, int tileY, Item item, Station station, String message,
+            String detail, Color accent, int duration) {
+        if (accent == null)
+            accent = Color.ORANGE;
+        if (duration <= 0)
+            duration = TilePopup.DEFAULT_DURATION;
+        for (TilePopup popup : tilePopups) {
+            if (popup.matches(tileX, tileY, message)) {
+                popup.refreshWithStation(item, station, detail, accent, duration);
+                return;
+            }
+        }
+        tilePopups.add(new TilePopup(tileX, tileY, item, station, message, detail, accent, duration));
     }
 
     public void pushTilePopup(int tileX, int tileY, Item item, String stationSymbol, String message, String detail,
@@ -527,6 +547,7 @@ public class GamePanel extends JPanel implements Runnable {
         private final String message;
         private Item item;
         private String stationSymbol;
+        private Station station;
         private String detail;
         private Color accent;
         private int timer;
@@ -534,10 +555,22 @@ public class GamePanel extends JPanel implements Runnable {
 
         TilePopup(int tileX, int tileY, Item item, String stationSymbol, String message, String detail, Color accent,
                 int duration) {
+            this(tileX, tileY, item, null, stationSymbol, message, detail, accent, duration);
+        }
+
+        TilePopup(int tileX, int tileY, Item item, Station station, String message, String detail, Color accent,
+                int duration) {
+            this(tileX, tileY, item, station, station != null ? station.getSymbol() : null, message, detail, accent,
+                    duration);
+        }
+
+        private TilePopup(int tileX, int tileY, Item item, Station station, String stationSymbol, String message,
+                String detail, Color accent, int duration) {
             this.tileX = tileX;
             this.tileY = tileY;
             this.message = message;
             this.item = item;
+            this.station = station;
             this.stationSymbol = stationSymbol;
             this.detail = computeDetail(detail, item, stationSymbol);
             this.accent = accent;
@@ -553,6 +586,20 @@ public class GamePanel extends JPanel implements Runnable {
             this.item = item;
             if (stationSymbol != null)
                 this.stationSymbol = stationSymbol;
+            this.detail = computeDetail(detail, item, this.stationSymbol);
+            this.accent = accent;
+            if (duration <= 0)
+                duration = DEFAULT_DURATION;
+            this.duration = duration;
+            this.timer = duration;
+        }
+
+        void refreshWithStation(Item item, Station station, String detail, Color accent, int duration) {
+            this.item = item;
+            if (station != null) {
+                this.station = station;
+                this.stationSymbol = station.getSymbol();
+            }
             this.detail = computeDetail(detail, item, this.stationSymbol);
             this.accent = accent;
             if (duration <= 0)
@@ -583,8 +630,18 @@ public class GamePanel extends JPanel implements Runnable {
         private BufferedImage resolveIcon() {
             if (item != null)
                 return AssetManager.getInstance().getItemIcon(item);
-            if (stationSymbol != null)
+            if (stationSymbol != null) {
+                // If we have a station reference, pass specific details
+                if (station instanceof com.tugasbesar.models.stations.IngredientStorage) {
+                    com.tugasbesar.models.stations.IngredientStorage storage = (com.tugasbesar.models.stations.IngredientStorage) station;
+                    return AssetManager.getInstance().getStationIcon(stationSymbol, storage.getIngredientName(), false);
+                }
+                if (station instanceof com.tugasbesar.models.stations.CookingStation) {
+                    com.tugasbesar.models.stations.CookingStation cookingStation = (com.tugasbesar.models.stations.CookingStation) station;
+                    return AssetManager.getInstance().getStationIcon(stationSymbol, null, cookingStation.isOn());
+                }
                 return AssetManager.getInstance().getStationIcon(stationSymbol);
+            }
             return null;
         }
 

@@ -54,8 +54,8 @@ public class AssetManager {
         DISH_ICON_MAP = Map.copyOf(dishes);
 
         Map<String, String> utensils = new HashMap<>();
-        utensils.put("Boiling Pot", "boiling_pot");
-        utensils.put("Frying Pan", "frying_pan");
+        utensils.put("Boiling Pot", "boilingpot");
+        utensils.put("Frying Pan", "fryingpan");
         utensils.put("Plate", "empty_plate");
         UTENSIL_ICON_MAP = Map.copyOf(utensils);
 
@@ -166,6 +166,20 @@ public class AssetManager {
      * Load station sprite by type
      */
     public BufferedImage loadStation(String stationType) {
+        return loadStation(stationType, null, false);
+    }
+
+    /**
+     * Load station sprite by type with optional ingredient specification
+     */
+    public BufferedImage loadStation(String stationType, String ingredientName) {
+        return loadStation(stationType, ingredientName, false);
+    }
+
+    /**
+     * Load station sprite by type with optional ingredient specification and cooking state
+     */
+    public BufferedImage loadStation(String stationType, String ingredientName, boolean isCookingOn) {
         String filename = null;
         switch (stationType.toLowerCase()) {
             case "assembly":
@@ -175,10 +189,18 @@ public class AssetManager {
                 filename = "c_cutting_station.png";
                 break;
             case "cooking":
-                filename = "r_cooking_station.png";
+                if (isCookingOn) {
+                    filename = "r_cooking_station_on.png";
+                } else {
+                    filename = "r_cooking_station_off.png";
+                }
                 break;
             case "ingredient":
-                filename = "i_ingredient_storage.png";
+                if (ingredientName != null && !ingredientName.isEmpty()) {
+                    filename = "i_ingredient_storage_" + ingredientName.toLowerCase() + ".png";
+                } else {
+                    filename = "i_ingredient_storage.png";
+                }
                 break;
             case "plate":
                 filename = "p_plate_storage.png";
@@ -205,7 +227,8 @@ public class AssetManager {
         Map<String, BufferedImage> stations = new HashMap<>();
         stations.put("assembly", loadImage("stations/a_assembly_station.png"));
         stations.put("cutting", loadImage("stations/c_cutting_station.png"));
-        stations.put("cooking", loadImage("stations/r_cooking_station.png"));
+        stations.put("cooking", loadImage("stations/r_cooking_station_off.png"));
+        stations.put("cooking_on", loadImage("stations/r_cooking_station_on.png"));
         stations.put("ingredient", loadImage("stations/i_ingredient_storage.png"));
         stations.put("plate", loadImage("stations/p_plate_storage.png"));
         stations.put("serving", loadImage("stations/s_serving_counter.png"));
@@ -274,6 +297,14 @@ public class AssetManager {
     }
 
     public BufferedImage getStationIcon(String symbol) {
+        return getStationIcon(symbol, null, false);
+    }
+
+    public BufferedImage getStationIcon(String symbol, String ingredientName) {
+        return getStationIcon(symbol, ingredientName, false);
+    }
+
+    public BufferedImage getStationIcon(String symbol, String ingredientName, boolean isCookingOn) {
         if (symbol == null) {
             return null;
         }
@@ -281,7 +312,7 @@ public class AssetManager {
         if (key == null) {
             return null;
         }
-        return loadStation(key);
+        return loadStation(key, ingredientName, isCookingOn);
     }
 
     private String resolveIconPath(Item item) {
@@ -360,13 +391,60 @@ public class AssetManager {
         for (char c : lower.toCharArray()) {
             if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
                 builder.append(c);
-            } else if (c == ' ' || c == '-' || c == '\t') {
-                builder.append('_');
             }
+            // Skip non-alphanumeric characters (spaces, dashes, etc.)
         }
-        String normalized = builder.toString().replaceAll("_+", "_");
-        normalized = normalized.replaceAll("^_", "");
-        normalized = normalized.replaceAll("_$", "");
-        return normalized;
+        return builder.toString();
+    }
+
+    /**
+     * Get icon for item on station (e.g., cooking device with ingredient)
+     */
+    public BufferedImage getItemOnStationIcon(Item item) {
+        if (item == null) {
+            return null;
+        }
+
+        // For cooking devices, show device with ingredient state
+        if (item instanceof com.tugasbesar.models.item.kitchen_utensil.BaseCookingDevice) {
+            com.tugasbesar.models.item.kitchen_utensil.BaseCookingDevice device = 
+                (com.tugasbesar.models.item.kitchen_utensil.BaseCookingDevice) item;
+            
+            String deviceName = normalizeName(device.getName());
+            
+            if (!device.isEmpty()) {
+                List<Processable> contents = device.getContents();
+                Processable ingredient = contents.get(0);
+                
+                if (ingredient instanceof Ingredient) {
+                    Ingredient ing = (Ingredient) ingredient;
+                    String ingredientName = INGREDIENT_ICON_MAP.getOrDefault(ing.getName(), 
+                        ing.getName().toLowerCase());
+                    
+                    String state = "raw";
+                    IngredientState ingState = ing.getState();
+                    if (ingState == IngredientState.CHOPPED) {
+                        state = "chopped";
+                    } else if (ingState == IngredientState.COOKED) {
+                        state = "cooked";
+                    } else if (ingState == IngredientState.BURNED) {
+                        state = "burned";
+                    }
+                    
+                    // Try to load device_ingredient_state.png (e.g., boilingpot_pasta_raw.png)
+                    String specificPath = "utensils/" + deviceName + "_" + ingredientName + "_" + state + ".png";
+                    BufferedImage specificImage = loadImage(specificPath);
+                    if (specificImage != null) {
+                        return specificImage;
+                    }
+                }
+            }
+            
+            // Fallback to empty device icon
+            return getItemIcon(device);
+        }
+        
+        // For other items, use standard item icon
+        return getItemIcon(item);
     }
 }

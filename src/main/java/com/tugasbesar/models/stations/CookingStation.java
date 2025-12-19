@@ -96,6 +96,14 @@ public class CookingStation extends Station {
         }
     }
 
+    public boolean isOn() {
+        if (itemOnStation instanceof BaseCookingDevice) {
+            BaseCookingDevice device = (BaseCookingDevice) itemOnStation;
+            return !device.isEmpty() && (device.isCooking() || device.isCooked() || device.isBurned());
+        }
+        return false;
+    }
+
     @Override
     public void draw(Graphics2D g2) {
         super.draw(g2);
